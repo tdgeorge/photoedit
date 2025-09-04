@@ -2,158 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Flashcards App</title>
-  <style>
-  :root {
-    --bg: #181c20;
-    --fg: #f4f4f4;
-    --card-bg: #23272e;
-    --card-fg: #f4f4f4;
-    --accent: #4a6cf7;
-    --accent2: #ffe3e3;
-    --success: #2ecc40;
-    --input-bg: #23272e;
-    --input-fg: #f4f4f4;
-    --border: #333;
-    --li-bg: #222c;
-    --li-fg: var(--fg);
-  }
-  body {
-    font-family: sans-serif;
-    background: var(--bg);
-    color: var(--fg);
-    margin: 0;
-    padding: 0;
-    transition: background 0.2s, color 0.2s;
-  }
-  .container {
-    max-width: 400px;
-    margin: 40px auto;
-    background: var(--card-bg);
-    color: var(--card-fg);
-    padding: 2em;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px #0005;
-    transition: background 0.2s, color 0.2s;
-  }
-  .flashcard {
-    cursor: pointer;
-    background: var(--accent);
-    color: #fff;
-    border-radius: 8px;
-    padding: 2em;
-    text-align: center;
-    font-size: 1.5em;
-    margin-bottom: 1em;
-    min-height: 80px;
-    transition: background 0.2s, color 0.2s;
-  }
-  .hidden { display: none; }
-  input, button {
-    font-size: 1em;
-    padding: 0.5em;
-    margin: 0.2em 0;
-    width: 100%;
-    box-sizing: border-box;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: var(--input-bg);
-    color: var(--input-fg);
-    transition: background 0.2s, color 0.2s, border 0.2s;
-  }
-  button {
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    margin-top: 0.5em;
-    width: auto;
-    min-width: 80px;
-    margin-right: 0.5em;
-    cursor: pointer;
-  }
-  button:disabled {
-    background: #555;
-    color: #aaa;
-    cursor: not-allowed;
-  }
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 1em 0 0 0;
-  }
-  li {
-    margin: 0.5em 0;
-    background: var(--li-bg);
-    color: var(--li-fg);
-    padding: 0.5em;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    transition: background 0.2s, color 0.2s;
-  }
-  li button {
-    font-size: 0.9em;
-    padding: 0.2em 0.7em;
-    margin: 0 0.2em;
-    min-width: unset;
-  }
-  .center { text-align: center; }
-  .toggle-theme {
-    margin: 2em auto 0 auto;
-    display: block;
-    background: none;
-    color: var(--fg);
-    border: 1px solid var(--border);
-    padding: 0.5em 1em;
-    border-radius: 4px;
-    cursor: pointer;
-    width: fit-content;
-    transition: background 0.2s, color 0.2s, border 0.2s;
-  }
-  /* Light mode */
-  body.light {
-    --bg: #f7f7f7;
-    --fg: #181c20;
-    --card-bg: #fff;
-    --card-fg: #181c20;
-    --accent: #4a6cf7;
-    --accent2: #ffe3e3;
-    --success: #2ecc40;
-    --input-bg: #fff;
-    --input-fg: #181c20;
-    --border: #bbb;
-    --li-bg: #f0f0f0;
-    --li-fg: #181c20;
-  }
-  body.light .flashcard {
-    color: #181c20;
-  }
-  body.light .toggle-theme {
-    color: #181c20;
-    border-color: #bbb;
-  }
-  </style>
+  <title>Photo Editor</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="container">
-    <h2>Flashcards App</h2>
-    <div id="input-section">
-      <input id="word" type="text" placeholder="Word" autocomplete="off" />
-      <input id="definition" type="text" placeholder="Definition" autocomplete="off" />
-      <button id="add-btn">Add</button>
-      <button id="start-btn">Start Review</button>
-      <ul id="word-list"></ul>
-    </div>
-    <div id="review-section" class="hidden">
-      <div id="flashcard" class="flashcard"></div>
-      <div class="center">
-        <button id="restart-btn">Restart</button>
-      </div>
+  <h1>Photo Editor</h1>
+  <input type="file" id="imageLoader" accept="image/*">
+  <div id="editor-container">
+    <canvas id="imageCanvas" width="600" height="400"></canvas>
+    <div id="toolbar">
+      <button id="rotateBtn">Rotate 90°</button>
+      <button id="cropBtn">Crop</button>
+      <button id="saveBtn">Save</button>
     </div>
   </div>
-  <button class="toggle-theme" id="toggle-theme-btn">Switch to Light Mode</button>
-  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
-  <script src="src/main.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
