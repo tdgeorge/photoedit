@@ -133,15 +133,34 @@ function drawCropRect() {
   ctx.restore();
 }
 
+function logDebug(msg) {
+  const log = document.getElementById('debug-log');
+  if (log) log.textContent = msg;
+}
+
 // Save
 document.getElementById('saveBtn').onclick = function() {
-  // Save the full-resolution image directly from the main canvas
-  const link = document.createElement('a');
-  link.download = 'edited-image.png';
-  link.href = canvas.toDataURL('image/png'); // Ensure PNG format
-  document.body.appendChild(link); // Required for Firefox
-  link.click();
-  document.body.removeChild(link);
+  try {
+    if (!canvas) {
+      logDebug('Canvas not found.');
+      return;
+    }
+    const dataUrl = canvas.toDataURL('image/png');
+    logDebug('Canvas toDataURL length: ' + dataUrl.length);
+    if (!dataUrl.startsWith('data:image/png')) {
+      logDebug('Data URL is not PNG.');
+      return;
+    }
+    const link = document.createElement('a');
+    link.download = 'edited-image.png';
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    logDebug('Save triggered.');
+  } catch (err) {
+    logDebug('Save error: ' + err);
+  }
 };
 
 // Color Scaling Feature
@@ -151,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const label = document.getElementById('version-label');
     if (label) label.textContent = 'Photo Editor ' + version;
   }
-  updateVersionLabel('v1.0.3'); // <-- Updated version
+  updateVersionLabel('v1.0.4'); // <-- Updated version
   // Scale canvas view on window resize
   window.addEventListener('resize', scaleCanvasView);
 
