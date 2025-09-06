@@ -144,43 +144,26 @@ function logDebug(msg) {
 
 // Save
 document.getElementById('saveBtn').onclick = async function() {
-  try {
-    // Remove any previous download link
-    let oldLink = document.getElementById('download-link');
-    if (oldLink) oldLink.remove();
+  // Store current style scaling
+  const prevWidth = canvas.style.width;
+  const prevHeight = canvas.style.height;
 
-    if ('showSaveFilePicker' in window) {
-      // Modern browsers: File System Access API
-      const options = {
-        suggestedName: 'edited-image.png',
-        types: [{
-          description: 'PNG Image',
-          accept: {'image/png': ['.png']}
-        }]
-      };
-      const handle = await window.showSaveFilePicker(options);
-      const writable = await handle.createWritable();
-      const blob = await (await fetch(canvas.toDataURL('image/png'))).blob();
-      await writable.write(blob);
-      await writable.close();
-      logDebug('Saved using File System Access API.');
-    } else {
-      // Fallback: create a download link next to the save button
-      const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.id = 'download-link';
-      link.download = 'edited-image.png';
-      link.href = dataUrl;
-      link.textContent = 'Download edited image';
-      link.style.marginLeft = '12px';
-      link.style.fontWeight = 'bold';
-      const saveBtn = document.getElementById('saveBtn');
-      saveBtn.parentNode.insertBefore(link, saveBtn.nextSibling);
-      logDebug('Download link created next to Save button.');
-    }
-  } catch (err) {
-    logDebug('Save error: ' + err);
-  }
+  // Temporarily remove scaling for accurate save
+  canvas.style.width = '';
+  canvas.style.height = '';
+
+  // Save image using actual pixel data
+  const dataUrl = canvas.toDataURL('image/png');
+  const link = document.createElement('a');
+  link.download = 'edited-image.png';
+  link.href = dataUrl;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  // Restore previous scaling
+  canvas.style.width = prevWidth;
+  canvas.style.height = prevHeight;
 };
 
 // Color Scaling Feature
@@ -190,14 +173,28 @@ document.addEventListener('DOMContentLoaded', function() {
     const label = document.getElementById('version-label');
     if (label) label.textContent = 'Photo Editor ' + version;
   }
-  updateVersionLabel('v1.0.6'); // <-- Updated version for download link next to Save button
+  updateVersionLabel('v1.0.8'); // <-- Updated version for save scaling fix
+
   // Scale canvas view on window resize
   window.addEventListener('resize', scaleCanvasView);
 
   function scaleCanvasView() {
-    // Always set canvas style width to 100% for responsiveness
-    canvas.style.width = '100%';
-    canvas.style.height = 'auto';
+    // Scale canvas to fit window, but keep pixel data unchanged
+    const maxWidth = window.innerWidth * 0.9;
+    const maxHeight = window.innerHeight * 0.6;
+    const aspect = canvas.width / canvas.height;
+    let newWidth = canvas.width;
+    let newHeight = canvas.height;
+    if (newWidth > maxWidth) {
+      newWidth = maxWidth;
+      newHeight = newWidth / aspect;
+    }
+    if (newHeight > maxHeight) {
+      newHeight = maxHeight;
+      newWidth = newHeight * aspect;
+    }
+    canvas.style.width = newWidth + 'px';
+    canvas.style.height = newHeight + 'px';
   }
   // Get slider elements after DOM is ready
   const redSlider = document.getElementById('redSlider');
