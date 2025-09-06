@@ -135,14 +135,26 @@ function drawCropRect() {
 
 // Save
 document.getElementById('saveBtn').onclick = function() {
+  // Save the full-resolution image, not the scaled preview
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = canvas.width;
+  tempCanvas.height = canvas.height;
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCtx.drawImage(canvas, 0, 0);
   const link = document.createElement('a');
   link.download = 'edited-image.png';
-  link.href = canvas.toDataURL();
+  link.href = tempCanvas.toDataURL();
   link.click();
 };
 
 // Color Scaling Feature
 document.addEventListener('DOMContentLoaded', function() {
+  // Update version label after every change
+  function updateVersionLabel(version) {
+    const label = document.getElementById('version-label');
+    if (label) label.textContent = 'Photo Editor ' + version;
+  }
+  updateVersionLabel('v1.0.1');
   // Scale canvas view on window resize
   window.addEventListener('resize', scaleCanvasView);
 
