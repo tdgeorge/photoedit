@@ -133,9 +133,13 @@ function drawCropRect() {
   ctx.restore();
 }
 
+// Enhanced debug log: keep all messages
 function logDebug(msg) {
   const log = document.getElementById('debug-log');
-  if (log) log.textContent = msg;
+  if (log) {
+    log.textContent += (log.textContent ? '\n' : '') + msg;
+    log.scrollTop = log.scrollHeight;
+  }
 }
 
 // Save
@@ -146,26 +150,34 @@ document.getElementById('saveBtn').onclick = function() {
       return;
     }
     logDebug('Canvas found. Width: ' + canvas.width + ', Height: ' + canvas.height);
+
     // Check if canvas has content
-    const blank = document.createElement('canvas');
-    blank.width = canvas.width;
-    blank.height = canvas.height;
-    if (ctx.getImageData(0, 0, canvas.width, canvas.height).data.every(v => v === 0)) {
-      logDebug('Canvas appears blank.');
-    }
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const isBlank = imageData.data.every(v => v === 0);
+    logDebug(isBlank ? 'Canvas appears blank.' : 'Canvas has content.');
+
     const dataUrl = canvas.toDataURL('image/png');
     logDebug('Canvas toDataURL: ' + dataUrl.substring(0, 30) + '... Length: ' + dataUrl.length);
+
     if (!dataUrl.startsWith('data:image/png')) {
       logDebug('Data URL is not PNG.');
       return;
     }
-    const link = document.createElement('a');
-    link.download = 'edited-image.png';
-    link.href = dataUrl;
-    document.body.appendChild(link);
-    link.click();
-    //document.body.removeChild(link);
-    logDebug('Save triggered. Check browser download.');
+
+    // Try opening the image in a new tab as a fallback for download issues
+    try {
+      const link = document.createElement('a');
+      link.download = 'edited-image.png';
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      logDebug('Save triggered. Check browser download.');
+    } catch (downloadErr) {
+      logDebug('Download error: ' + downloadErr);
+      window.open(dataUrl, '_blank');
+      logDebug('Opened image in new tab as fallback.');
+    }
   } catch (err) {
     logDebug('Save error: ' + err);
   }
