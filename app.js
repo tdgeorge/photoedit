@@ -129,3 +129,51 @@ document.getElementById('saveBtn').onclick = function() {
   link.href = canvas.toDataURL();
   link.click();
 };
+
+// Color Scaling Feature
+const redSlider = document.getElementById('redSlider');
+const greenSlider = document.getElementById('greenSlider');
+const blueSlider = document.getElementById('blueSlider');
+const redValue = document.getElementById('redValue');
+const greenValue = document.getElementById('greenValue');
+const blueValue = document.getElementById('blueValue');
+
+function applyColorScaling() {
+  if (!imgData) return;
+  // Get scaling factors
+  const rScale = parseInt(redSlider.value, 10) / 100;
+  const gScale = parseInt(greenSlider.value, 10) / 100;
+  const bScale = parseInt(blueSlider.value, 10) / 100;
+  // Copy original image data
+  const scaledData = new ImageData(new Uint8ClampedArray(imgData.data), imgData.width, imgData.height);
+  for (let i = 0; i < scaledData.data.length; i += 4) {
+    scaledData.data[i] = Math.min(255, Math.max(0, Math.round(scaledData.data[i] * rScale)));
+    scaledData.data[i + 1] = Math.min(255, Math.max(0, Math.round(scaledData.data[i + 1] * gScale)));
+    scaledData.data[i + 2] = Math.min(255, Math.max(0, Math.round(scaledData.data[i + 2] * bScale)));
+    // alpha channel unchanged
+  }
+  ctx.putImageData(scaledData, 0, 0);
+}
+
+function updateSliderDisplays() {
+  redValue.textContent = redSlider.value;
+  greenValue.textContent = greenSlider.value;
+  blueValue.textContent = blueSlider.value;
+}
+
+function handleSliderChange() {
+  updateSliderDisplays();
+  applyColorScaling();
+}
+
+redSlider.addEventListener('input', handleSliderChange);
+greenSlider.addEventListener('input', handleSliderChange);
+blueSlider.addEventListener('input', handleSliderChange);
+
+// When a new image is loaded, reset sliders and show original
+imageLoader.addEventListener('change', function() {
+  redSlider.value = 100;
+  greenSlider.value = 100;
+  blueSlider.value = 100;
+  updateSliderDisplays();
+});
