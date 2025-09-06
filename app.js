@@ -145,6 +145,10 @@ function logDebug(msg) {
 // Save
 document.getElementById('saveBtn').onclick = async function() {
   try {
+    // Remove any previous download link
+    let oldLink = document.getElementById('download-link');
+    if (oldLink) oldLink.remove();
+
     if ('showSaveFilePicker' in window) {
       // Modern browsers: File System Access API
       const options = {
@@ -161,15 +165,18 @@ document.getElementById('saveBtn').onclick = async function() {
       await writable.close();
       logDebug('Saved using File System Access API.');
     } else {
-      // Fallback: <a download>
+      // Fallback: create a download link next to the save button
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
+      link.id = 'download-link';
       link.download = 'edited-image.png';
       link.href = dataUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      logDebug('Saved using <a download> fallback.');
+      link.textContent = 'Download edited image';
+      link.style.marginLeft = '12px';
+      link.style.fontWeight = 'bold';
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.parentNode.insertBefore(link, saveBtn.nextSibling);
+      logDebug('Download link created next to Save button.');
     }
   } catch (err) {
     logDebug('Save error: ' + err);
@@ -183,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const label = document.getElementById('version-label');
     if (label) label.textContent = 'Photo Editor ' + version;
   }
-  updateVersionLabel('v1.0.5'); // <-- Updated version for persistent debug log and save fallback
+  updateVersionLabel('v1.0.6'); // <-- Updated version for download link next to Save button
   // Scale canvas view on window resize
   window.addEventListener('resize', scaleCanvasView);
 
