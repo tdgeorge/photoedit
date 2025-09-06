@@ -13,12 +13,15 @@ imageLoader.addEventListener('change', function(e) {
   const reader = new FileReader();
   reader.onload = function(event) {
     img.onload = function() {
+      // Set canvas to image's natural size for editing
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
-  imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  originalImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  applyColorScaling();
+      imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      originalImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      applyColorScaling();
+      // Scale canvas view to fit container
+      scaleCanvasView();
     };
     img.src = event.target.result;
   };
@@ -139,6 +142,22 @@ document.getElementById('saveBtn').onclick = function() {
 
 // Color Scaling Feature
 document.addEventListener('DOMContentLoaded', function() {
+  // Scale canvas view on window resize
+  window.addEventListener('resize', scaleCanvasView);
+
+  function scaleCanvasView() {
+    // Get container width
+    const container = document.getElementById('editor-container');
+    if (!container) return;
+    // Set canvas style width to fit container, but keep actual pixel size for editing/saving
+    const maxWidth = container.offsetWidth;
+    if (canvas.width > maxWidth) {
+      canvas.style.width = maxWidth + 'px';
+    } else {
+      canvas.style.width = canvas.width + 'px';
+    }
+    canvas.style.height = 'auto';
+  }
   // Get slider elements after DOM is ready
   const redSlider = document.getElementById('redSlider');
   const greenSlider = document.getElementById('greenSlider');
