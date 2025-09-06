@@ -138,8 +138,10 @@ document.getElementById('saveBtn').onclick = function() {
   // Save the full-resolution image directly from the main canvas
   const link = document.createElement('a');
   link.download = 'edited-image.png';
-  link.href = canvas.toDataURL();
+  link.href = canvas.toDataURL('image/png'); // Ensure PNG format
+  document.body.appendChild(link); // Required for Firefox
   link.click();
+  document.body.removeChild(link);
 };
 
 // Color Scaling Feature
@@ -149,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const label = document.getElementById('version-label');
     if (label) label.textContent = 'Photo Editor ' + version;
   }
-  updateVersionLabel('v1.0.2');
+  updateVersionLabel('v1.0.3'); // <-- Updated version
   // Scale canvas view on window resize
   window.addEventListener('resize', scaleCanvasView);
 
