@@ -20,7 +20,6 @@ imageLoader.addEventListener('change', function(e) {
       imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       originalImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       applyColorScaling();
-      // Scale canvas view to fit container
       scaleCanvasView();
     };
     img.src = event.target.result;
@@ -47,6 +46,7 @@ document.getElementById('rotateBtn').onclick = function() {
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   originalImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   applyColorScaling();
+  scaleCanvasView();
 };
 
 // Crop
@@ -97,6 +97,7 @@ document.getElementById('cropBtn').onclick = function() {
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   originalImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   applyColorScaling();
+  scaleCanvasView();
 };
 
 function getMousePos(e) {
@@ -146,16 +147,8 @@ document.addEventListener('DOMContentLoaded', function() {
   window.addEventListener('resize', scaleCanvasView);
 
   function scaleCanvasView() {
-    // Get container width
-    const container = document.getElementById('editor-container');
-    if (!container) return;
-    // Set canvas style width to fit container, but keep actual pixel size for editing/saving
-    const maxWidth = container.offsetWidth;
-    if (canvas.width > maxWidth) {
-      canvas.style.width = maxWidth + 'px';
-    } else {
-      canvas.style.width = canvas.width + 'px';
-    }
+    // Always set canvas style width to 100% for responsiveness
+    canvas.style.width = '100%';
     canvas.style.height = 'auto';
   }
   // Get slider elements after DOM is ready
@@ -185,6 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     ctx.putImageData(scaledData, 0, 0);
     imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    scaleCanvasView();
   }
 
   function handleSliderChange() {
