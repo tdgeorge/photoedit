@@ -143,40 +143,33 @@ function logDebug(msg) {
 }
 
 // Save
-document.getElementById('saveBtn').onclick = function() {
+document.getElementById('saveBtn').onclick = async function() {
   try {
-    if (!canvas) {
-      logDebug('Canvas not found.');
-      return;
-    }
-    logDebug('Canvas found. Width: ' + canvas.width + ', Height: ' + canvas.height);
-
-    // Check if canvas has content
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const isBlank = imageData.data.every(v => v === 0);
-    logDebug(isBlank ? 'Canvas appears blank.' : 'Canvas has content.');
-
-    const dataUrl = canvas.toDataURL('image/png');
-    logDebug('Canvas toDataURL: ' + dataUrl.substring(0, 30) + '... Length: ' + dataUrl.length);
-
-    if (!dataUrl.startsWith('data:image/png')) {
-      logDebug('Data URL is not PNG.');
-      return;
-    }
-
-    // Try opening the image in a new tab as a fallback for download issues
-    try {
+    if ('showSaveFilePicker' in window) {
+      // Modern browsers: File System Access API
+      const options = {
+        suggestedName: 'edited-image.png',
+        types: [{
+          description: 'PNG Image',
+          accept: {'image/png': ['.png']}
+        }]
+      };
+      const handle = await window.showSaveFilePicker(options);
+      const writable = await handle.createWritable();
+      const blob = await (await fetch(canvas.toDataURL('image/png'))).blob();
+      await writable.write(blob);
+      await writable.close();
+      logDebug('Saved using File System Access API.');
+    } else {
+      // Fallback: <a download>
+      const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.download = 'edited-image.png';
       link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      logDebug('Save triggered. Check browser download.');
-    } catch (downloadErr) {
-      logDebug('Download error: ' + downloadErr);
-      window.open(dataUrl, '_blank');
-      logDebug('Opened image in new tab as fallback.');
+      logDebug('Saved using <a download> fallback.');
     }
   } catch (err) {
     logDebug('Save error: ' + err);
@@ -190,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const label = document.getElementById('version-label');
     if (label) label.textContent = 'Photo Editor ' + version;
   }
-  updateVersionLabel('v1.0.4'); // <-- Updated version
+  updateVersionLabel('v1.0.5'); // <-- Updated version for persistent debug log and save fallback
   // Scale canvas view on window resize
   window.addEventListener('resize', scaleCanvasView);
 
