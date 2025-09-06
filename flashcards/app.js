@@ -164,7 +164,7 @@ document.getElementById('saveBtn').onclick = function() {
     link.href = dataUrl;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    //document.body.removeChild(link);
     logDebug('Save triggered. Check browser download.');
   } catch (err) {
     logDebug('Save error: ' + err);
