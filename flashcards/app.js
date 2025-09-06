@@ -145,8 +145,16 @@ document.getElementById('saveBtn').onclick = function() {
       logDebug('Canvas not found.');
       return;
     }
+    logDebug('Canvas found. Width: ' + canvas.width + ', Height: ' + canvas.height);
+    // Check if canvas has content
+    const blank = document.createElement('canvas');
+    blank.width = canvas.width;
+    blank.height = canvas.height;
+    if (ctx.getImageData(0, 0, canvas.width, canvas.height).data.every(v => v === 0)) {
+      logDebug('Canvas appears blank.');
+    }
     const dataUrl = canvas.toDataURL('image/png');
-    logDebug('Canvas toDataURL length: ' + dataUrl.length);
+    logDebug('Canvas toDataURL: ' + dataUrl.substring(0, 30) + '... Length: ' + dataUrl.length);
     if (!dataUrl.startsWith('data:image/png')) {
       logDebug('Data URL is not PNG.');
       return;
@@ -157,7 +165,7 @@ document.getElementById('saveBtn').onclick = function() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    logDebug('Save triggered.');
+    logDebug('Save triggered. Check browser download.');
   } catch (err) {
     logDebug('Save error: ' + err);
   }
