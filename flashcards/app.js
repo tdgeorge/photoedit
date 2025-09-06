@@ -3,6 +3,7 @@ const canvas = document.getElementById('imageCanvas');
 const ctx = canvas.getContext('2d');
 let img = new Image();
 let imgData = null;
+let originalImgData = null;
 let cropping = false;
 let cropStart = null;
 let cropEnd = null;
@@ -15,7 +16,9 @@ imageLoader.addEventListener('change', function(e) {
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
-      imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  originalImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  applyColorScaling();
     };
     img.src = event.target.result;
   };
@@ -39,6 +42,8 @@ document.getElementById('rotateBtn').onclick = function() {
   canvas.height = tempCanvas.height;
   ctx.drawImage(tempCanvas, 0, 0);
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  originalImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  applyColorScaling();
 };
 
 // Crop
@@ -87,6 +92,8 @@ document.getElementById('cropBtn').onclick = function() {
   ctx.putImageData(cropped, 0, 0);
   cropStart = cropEnd = null;
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  originalImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  applyColorScaling();
 };
 
 function getMousePos(e) {
@@ -139,13 +146,13 @@ const greenValue = document.getElementById('greenValue');
 const blueValue = document.getElementById('blueValue');
 
 function applyColorScaling() {
-  if (!imgData) return;
+  if (!originalImgData) return;
   // Get scaling factors
   const rScale = parseInt(redSlider.value, 10) / 100;
   const gScale = parseInt(greenSlider.value, 10) / 100;
   const bScale = parseInt(blueSlider.value, 10) / 100;
   // Copy original image data
-  const scaledData = new ImageData(new Uint8ClampedArray(imgData.data), imgData.width, imgData.height);
+  const scaledData = new ImageData(new Uint8ClampedArray(originalImgData.data), originalImgData.width, originalImgData.height);
   for (let i = 0; i < scaledData.data.length; i += 4) {
     scaledData.data[i] = Math.min(255, Math.max(0, Math.round(scaledData.data[i] * rScale)));
     scaledData.data[i + 1] = Math.min(255, Math.max(0, Math.round(scaledData.data[i + 1] * gScale)));
@@ -153,6 +160,7 @@ function applyColorScaling() {
     // alpha channel unchanged
   }
   ctx.putImageData(scaledData, 0, 0);
+  imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
 
 function updateSliderDisplays() {
@@ -171,7 +179,9 @@ greenSlider.addEventListener('input', handleSliderChange);
 blueSlider.addEventListener('input', handleSliderChange);
 
 // When a new image is loaded, reset sliders and show original
-imageLoader.addEventListener('change', function() {
+
+// Initialize slider displays on page load
+document.addEventListener('DOMContentLoaded', function() {
   redSlider.value = 100;
   greenSlider.value = 100;
   blueSlider.value = 100;
