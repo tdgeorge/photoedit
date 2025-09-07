@@ -1,19 +1,35 @@
 {
-  "name": "flashcards",
-  "version": "1.0.0",
-  "description": "A simple JavaScript-based flashcards website.",
-  "main": "src/main.js",
+  "name": "photo-editor",
+  "version": "2.0.0",
+  "description": "A modern browser-based photo editor with crop, rotate, and color adjustment features.",
+  "main": "app.js",
   "scripts": {
     "start": "live-server",
-    "deploy": "gh-pages -d ."
+    "deploy": "gh-pages -d .",
+    "build": "echo 'No build step needed for static site'"
   },
   "dependencies": {
     "gh-pages": "^3.2.3",
     "live-server": "^1.2.1"
   },
-  "scripts": {
-    "build": "echo 'No build step needed for static site'"
-  },
+  "keywords": [
+    "photo-editor",
+    "image-editing",
+    "canvas",
+    "javascript",
+    "web-app"
+  ],
   "author": "",
-  "license": "ISC"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tdgeorge/photoedit.git"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "iOS >= 12",
+    "Safari >= 12"
+  ]
 }

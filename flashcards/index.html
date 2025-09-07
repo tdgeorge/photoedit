@@ -2,40 +2,106 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Photo Editor</title>
+  <meta name="description" content="A modern photo editor with crop, rotate, and color adjustment features">
   <link rel="stylesheet" href="styles.css">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 </head>
 <body>
-  <h1>Photo Editor</h1>
-  <input type="file" id="imageLoader" accept="image/*">
-  <div id="editor-container">
-    <canvas id="imageCanvas" width="600" height="400"></canvas>
-    <div id="toolbar">
-      <button id="rotateBtn">Rotate 90°</button>
-      <button id="cropBtn">Crop</button>
-      <button id="saveBtn">Save</button>
+  <main class="app-container">
+    <header class="app-header">
+      <h1>Photo Editor</h1>
+      <p class="app-subtitle">Edit your photos with ease</p>
+    </header>
+
+    <section class="upload-section">
+      <label for="imageLoader" class="file-upload-btn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
+          <circle cx="12" cy="13" r="3"></circle>
+        </svg>
+        Choose Image
+      </label>
+      <input type="file" id="imageLoader" accept="image/*" aria-label="Upload image file">
+    </section>
+
+    <div id="editor-container" class="editor-container">
+      <div class="canvas-wrapper">
+        <canvas id="imageCanvas" width="600" height="400" aria-label="Image editing canvas"></canvas>
+        <div id="crop-overlay" class="crop-overlay" aria-hidden="true"></div>
+      </div>
+      
+      <div class="controls-panel">
+        <div class="toolbar">
+          <button id="rotateBtn" class="tool-btn" type="button" aria-label="Rotate image 90 degrees">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 4v6h6"></path>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+            Rotate 90°
+          </button>
+          <button id="cropBtn" class="tool-btn" type="button" aria-label="Crop image">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"></path>
+              <path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"></path>
+            </svg>
+            Crop
+          </button>
+          <button id="resetBtn" class="tool-btn secondary" type="button" aria-label="Reset all changes">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+            Reset
+          </button>
+          <button id="saveBtn" class="tool-btn primary" type="button" aria-label="Save edited image">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17,21 17,13 7,13 7,21"></polyline>
+              <polyline points="7,3 7,8 15,8"></polyline>
+            </svg>
+            Save
+          </button>
+        </div>
+
+        <div class="color-controls">
+          <h3>Color Adjustments</h3>
+          <div class="slider-group">
+            <label for="redSlider" class="slider-label">
+              <span class="color-name">Red</span>
+              <span id="redValue" class="slider-value">100</span>
+            </label>
+            <input type="range" id="redSlider" class="color-slider red" min="0" max="200" value="100" aria-valuemin="0" aria-valuemax="200" aria-valuenow="100">
+          </div>
+          
+          <div class="slider-group">
+            <label for="greenSlider" class="slider-label">
+              <span class="color-name">Green</span>
+              <span id="greenValue" class="slider-value">100</span>
+            </label>
+            <input type="range" id="greenSlider" class="color-slider green" min="0" max="200" value="100" aria-valuemin="0" aria-valuemax="200" aria-valuenow="100">
+          </div>
+          
+          <div class="slider-group">
+            <label for="blueSlider" class="slider-label">
+              <span class="color-name">Blue</span>
+              <span id="blueValue" class="slider-value">100</span>
+            </label>
+            <input type="range" id="blueSlider" class="color-slider blue" min="0" max="200" value="100" aria-valuemin="0" aria-valuemax="200" aria-valuenow="100">
+          </div>
+        </div>
+      </div>
     </div>
-    <div id="color-scaling">
-      <label for="redSlider">Red</label>
-      <input type="range" id="redSlider" min="0" max="200" value="100">
-      <span id="redValue">100</span>
-      <br>
-      <label for="greenSlider">Green</label>
-      <input type="range" id="greenSlider" min="0" max="200" value="100">
-      <span id="greenValue">100</span>
-      <br>
-      <label for="blueSlider">Blue</label>
-      <input type="range" id="blueSlider" min="0" max="200" value="100">
-      <span id="blueValue">100</span>
-    </div>
-    </div>
-  </div>
+
+    <footer class="app-footer">
+      <div id="version-label" class="version-label">Photo Editor v2.0.0</div>
+      <div id="status-message" class="status-message" aria-live="polite"></div>
+    </footer>
+  </main>
+
   <script src="app.js"></script>
-  <div id="version-label" style="text-align:center; margin-top:1em; color:#888;">Photo Editor v1.0.0</div>
-  <script src="app.js"></script>
-  <div id="debug-log" style="background:#222;color:#eee;padding:8px;font-size:13px;min-height:24px;"></div>
 </body>
 </html>
