@@ -133,17 +133,13 @@ function drawCropRect() {
   ctx.restore();
 }
 
-// Enhanced debug log: keep all messages
-function logDebug(msg) {
-  const log = document.getElementById('debug-log');
-  if (log) {
-    log.textContent += (log.textContent ? '\n' : '') + msg;
-    log.scrollTop = log.scrollHeight;
-  }
-}
-
 // Save
-document.getElementById('saveBtn').onclick = async function() {
+document.getElementById('saveBtn').onclick = function() {
+  // Ensure the latest image data is rendered
+  if (imgData) {
+    ctx.putImageData(imgData, 0, 0);
+  }
+
   // Store current style scaling
   const prevWidth = canvas.style.width;
   const prevHeight = canvas.style.height;
@@ -173,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const label = document.getElementById('version-label');
     if (label) label.textContent = 'Photo Editor ' + version;
   }
-  updateVersionLabel('v1.0.8'); // <-- Updated version for save scaling fix
+  updateVersionLabel('v1.0.9'); // <-- Updated version for robust save
 
   // Scale canvas view on window resize
   window.addEventListener('resize', scaleCanvasView);
