@@ -1,11 +1,11 @@
-# Flashcards Website
+# Photo Editor Website
 
 This project is a simple JavaScript-based website that displays a "Hello World" message. It is structured to be easily deployed to GitHub Pages.
 
 ## Project Structure
 
 ```
-flashcards
+photoedit
 ├── index.html          # Main HTML document
 ├── src
 │   └── main.js        # JavaScript code for the website
@@ -23,7 +23,7 @@ To get started with this project, follow these steps:
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd flashcards
+   cd photoedit
    ```
 
 2. **Install dependencies:**
