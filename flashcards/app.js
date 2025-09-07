@@ -370,22 +370,196 @@ class PhotoEditor {
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
       const filename = `edited-photo-${timestamp}.png`;
       
-      // Create download link
+      // Get high-quality image data
       const dataUrl = this.bgCanvas.toDataURL('image/png', 1.0);
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = dataUrl;
       
-      // Trigger download
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Detect iOS Chrome specifically
+      const isIOSChrome = /CriOS/.test(navigator.userAgent) && /iPhone|iPad|iPod/.test(navigator.userAgent);
+      const isMobileSafari = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent) && !/CriOS/.test(navigator.userAgent);
+      const isDesktop = !/iPhone|iPad|iPod|Android/.test(navigator.userAgent);
       
-      this.showStatusMessage('Image saved successfully!', 'success');
+      if (isIOSChrome) {
+        // iOS Chrome: Open image in new tab for user to save manually
+        this.handleIOSChromeSave(dataUrl, filename);
+      } else if (isMobileSafari) {
+        // iOS Safari: Use the standard download approach
+        this.handleStandardSave(dataUrl, filename);
+      } else if (isDesktop) {
+        // Desktop browsers: Standard download
+        this.handleStandardSave(dataUrl, filename);
+      } else {
+        // Other mobile browsers: Try standard first, fallback to new tab
+        try {
+          this.handleStandardSave(dataUrl, filename);
+        } catch (error) {
+          this.handleIOSChromeSave(dataUrl, filename);
+        }
+      }
+      
     } catch (error) {
       console.error('Error saving image:', error);
-      this.showStatusMessage('Failed to save image.', 'error');
+      this.showStatusMessage('Failed to save image. Please try again.', 'error');
     }
+  }
+
+  handleStandardSave(dataUrl, filename) {
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = dataUrl;
+    link.style.display = 'none';
+    
+    // Add to DOM, click, and remove
+    document.body.appendChild(link);
+    
+    // Use setTimeout to ensure the element is in the DOM
+    setTimeout(() => {
+      link.click();
+      document.body.removeChild(link);
+      this.showStatusMessage('Image saved successfully!', 'success');
+    }, 100);
+  }
+
+  handleIOSChromeSave(dataUrl, filename) {
+    // For iOS Chrome, we need to open in a new window/tab
+    // and provide instructions to the user
+    try {
+      // Try to open in new tab
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Save Your Edited Photo</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                text-align: center;
+                background: #f5f5f5;
+              }
+              .container {
+                background: white;
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+              }
+              img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 8px;
+                margin: 20px 0;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              }
+              .instructions {
+                background: #e3f2fd;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 20px 0;
+                border-left: 4px solid #2196f3;
+              }
+              .filename {
+                font-family: monospace;
+                background: #f5f5f5;
+                padding: 8px;
+                border-radius: 4px;
+                display: inline-block;
+                margin: 10px 0;
+              }
+              button {
+                background: #667eea;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-size: 16px;
+                cursor: pointer;
+                margin: 10px;
+              }
+              button:hover {
+                background: #5a67d8;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>📸 Your Edited Photo</h1>
+              <img src="${dataUrl}" alt="Edited photo">
+              
+              <div class="instructions">
+                <h3>📱 How to save on iOS Chrome:</h3>
+                <ol style="text-align: left;">
+                  <li>Long press on the image above</li>
+                  <li>Select "Save to Photos" or "Download Image"</li>
+                  <li>The image will be saved to your Photos app</li>
+                </ol>
+              </div>
+              
+              <div class="filename">
+                Suggested filename: ${filename}
+              </div>
+              
+              <button onclick="window.close()">Close This Tab</button>
+            </div>
+          </body>
+          </html>
+        `);
+        newWindow.document.close();
+        
+        this.showStatusMessage('Image opened in new tab. Follow instructions to save.', 'info');
+      } else {
+        // Fallback: try to trigger download anyway
+        this.handleStandardSave(dataUrl, filename);
+      }
+    } catch (error) {
+      console.error('Error opening save window:', error);
+      // Final fallback: show the data URL directly
+      this.showDataUrlFallback(dataUrl, filename);
+    }
+  }
+
+  showDataUrlFallback(dataUrl, filename) {
+    // Create a modal-like overlay with the image
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    `;
+    
+    overlay.innerHTML = `
+      <div style="background: white; padding: 20px; border-radius: 12px; max-width: 90%; max-height: 90%; overflow: auto; text-align: center;">
+        <h3>📸 Your Edited Photo</h3>
+        <img src="${dataUrl}" style="max-width: 100%; height: auto; border-radius: 8px; margin: 15px 0;" alt="Edited photo">
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: left;">
+          <strong>📱 To save this image:</strong>
+          <br>1. Long press on the image above
+          <br>2. Select "Save to Photos" or "Download Image"
+          <br>3. The image will be saved to your device
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" style="background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer;">
+          Close
+        </button>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    this.showStatusMessage('Long press the image to save it to your photos.', 'info');
   }
 
   handleColorAdjustment(color, value) {
