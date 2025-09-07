@@ -32,6 +32,7 @@ class PhotoEditor {
       cropBtn: document.getElementById('cropBtn'),
       resetBtn: document.getElementById('resetBtn'),
       saveBtn: document.getElementById('saveBtn'),
+      fftBtn: document.getElementById('fftBtn'), // New FFT button
       redSlider: document.getElementById('redSlider'),
       greenSlider: document.getElementById('greenSlider'),
       blueSlider: document.getElementById('blueSlider'),
@@ -43,7 +44,7 @@ class PhotoEditor {
     };
 
     // Validate required elements
-    const requiredElements = ['imageLoader', 'canvas', 'rotateBtn', 'cropBtn', 'saveBtn'];
+    const requiredElements = ['imageLoader', 'canvas', 'rotateBtn', 'cropBtn', 'saveBtn', 'fftBtn'];
     const missingElements = requiredElements.filter(id => !this.elements[id]);
     
     if (missingElements.length > 0) {
@@ -87,6 +88,7 @@ class PhotoEditor {
     this.elements.cropBtn.addEventListener('click', () => this.applyCrop());
     this.elements.resetBtn?.addEventListener('click', () => this.resetImage());
     this.elements.saveBtn.addEventListener('click', () => this.saveImage());
+    this.elements.fftBtn.addEventListener('click', () => this.computeFFT()); // New FFT handler
     
     // Color sliders
     ['red', 'green', 'blue'].forEach(color => {
@@ -750,13 +752,14 @@ class PhotoEditor {
     this.elements.rotateBtn.disabled = !hasImage;
     this.elements.cropBtn.disabled = !hasImage;
     this.elements.saveBtn.disabled = !hasImage;
+    this.elements.fftBtn.disabled = !hasImage; // Enable/disable FFT button
     
     if (this.elements.resetBtn) {
       this.elements.resetBtn.disabled = !hasImage;
     }
     
     // Update button styles
-    [this.elements.rotateBtn, this.elements.cropBtn, this.elements.saveBtn].forEach(btn => {
+    [this.elements.rotateBtn, this.elements.cropBtn, this.elements.saveBtn, this.elements.fftBtn].forEach(btn => {
       if (btn) {
         btn.style.opacity = hasImage ? '1' : '0.5';
         btn.style.cursor = hasImage ? 'pointer' : 'not-allowed';
@@ -777,6 +780,251 @@ class PhotoEditor {
         this.elements.statusMessage.className = 'status-message';
       }
     }, 3000);
+  }
+
+  // FFT and frequency analysis methods
+  computeFFT() {
+    if (!this.state.isImageLoaded) {
+      this.showStatusMessage('Please load an image first.', 'warning');
+      return;
+    }
+
+    try {
+      this.showStatusMessage('Computing FFT...', 'info');
+      
+      // Get image data and convert to grayscale
+      const imageData = this.bgCtx.getImageData(0, 0, this.bgCanvas.width, this.bgCanvas.height);
+      const width = imageData.width;
+      const height = imageData.height;
+      
+      // Convert to grayscale and normalize to 0-1
+      const grayscale = new Float32Array(width * height);
+      for (let i = 0; i < width * height; i++) {
+        const r = imageData.data[i * 4];
+        const g = imageData.data[i * 4 + 1];
+        const b = imageData.data[i * 4 + 2];
+        grayscale[i] = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      }
+      
+      // Compute 2D FFT
+      const fftResult = this.fft2D(grayscale, width, height);
+      
+      // Convert FFT result to magnitude spectrum for visualization
+      const magnitude = new Float32Array(width * height);
+      let maxMag = 0;
+      
+      for (let i = 0; i < width * height; i++) {
+        const real = fftResult.real[i];
+        const imag = fftResult.imag[i];
+        magnitude[i] = Math.sqrt(real * real + imag * imag);
+        if (magnitude[i] > maxMag) maxMag = magnitude[i];
+      }
+      
+      // Create visualization
+      this.visualizeFFT(magnitude, width, height, maxMag);
+      
+      this.showStatusMessage('FFT computed and displayed!', 'success');
+    } catch (error) {
+      console.error('Error computing FFT:', error);
+      this.showStatusMessage('Failed to compute FFT.', 'error');
+    }
+  }
+
+  fft2D(data, width, height) {
+    // Simple 2D FFT implementation using separable 1D FFTs
+    const result = {
+      real: new Float32Array(width * height),
+      imag: new Float32Array(width * height)
+    };
+    
+    // Copy input data to real part
+    for (let i = 0; i < width * height; i++) {
+      result.real[i] = data[i];
+      result.imag[i] = 0;
+    }
+    
+    // FFT along rows
+    for (let y = 0; y < height; y++) {
+      const rowReal = new Float32Array(width);
+      const rowImag = new Float32Array(width);
+      
+      for (let x = 0; x < width; x++) {
+        rowReal[x] = result.real[y * width + x];
+        rowImag[x] = result.imag[y * width + x];
+      }
+      
+      const rowFFT = this.fft1D(rowReal, rowImag);
+      
+      for (let x = 0; x < width; x++) {
+        result.real[y * width + x] = rowFFT.real[x];
+        result.imag[y * width + x] = rowFFT.imag[x];
+      }
+    }
+    
+    // FFT along columns
+    for (let x = 0; x < width; x++) {
+      const colReal = new Float32Array(height);
+      const colImag = new Float32Array(height);
+      
+      for (let y = 0; y < height; y++) {
+        colReal[y] = result.real[y * width + x];
+        colImag[y] = result.imag[y * width + x];
+      }
+      
+      const colFFT = this.fft1D(colReal, colImag);
+      
+      for (let y = 0; y < height; y++) {
+        result.real[y * width + x] = colFFT.real[y];
+        result.imag[y * width + x] = colFFT.imag[y];
+      }
+    }
+    
+    return result;
+  }
+
+  fft1D(real, imag) {
+    const N = real.length;
+    if (N <= 1) return { real, imag };
+    
+    // Bit-reverse permutation
+    for (let i = 1, j = 0; i < N; i++) {
+      let bit = N >> 1;
+      for (; j & bit; bit >>= 1) {
+        j ^= bit;
+      }
+      j ^= bit;
+      
+      if (i < j) {
+        [real[i], real[j]] = [real[j], real[i]];
+        [imag[i], imag[j]] = [imag[j], imag[i]];
+      }
+    }
+    
+    // Cooley-Tukey FFT
+    for (let len = 2; len <= N; len <<= 1) {
+      const angle = -2 * Math.PI / len;
+      const wlen_real = Math.cos(angle);
+      const wlen_imag = Math.sin(angle);
+      
+      for (let i = 0; i < N; i += len) {
+        let w_real = 1;
+        let w_imag = 0;
+        
+        for (let j = 0; j < len / 2; j++) {
+          const u_real = real[i + j];
+          const u_imag = imag[i + j];
+          const v_real = real[i + j + len / 2] * w_real - imag[i + j + len / 2] * w_imag;
+          const v_imag = real[i + j + len / 2] * w_imag + imag[i + j + len / 2] * w_real;
+          
+          real[i + j] = u_real + v_real;
+          imag[i + j] = u_imag + v_imag;
+          real[i + j + len / 2] = u_real - v_real;
+          imag[i + j + len / 2] = u_imag - v_imag;
+          
+          const next_w_real = w_real * wlen_real - w_imag * wlen_imag;
+          w_imag = w_real * wlen_imag + w_imag * wlen_real;
+          w_real = next_w_real;
+        }
+      }
+    }
+    
+    return { real: new Float32Array(real), imag: new Float32Array(imag) };
+  }
+
+  visualizeFFT(magnitude, width, height, maxMag) {
+    // Create a new window to display the FFT result
+    const fftWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    fftWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>FFT Frequency Domain</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            text-align: center;
+          }
+          .container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: inline-block;
+          }
+          canvas {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin: 10px;
+          }
+          .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: left;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>🔬 FFT Frequency Domain Analysis</h1>
+          <canvas id="fftCanvas" width="${width}" height="${height}"></canvas>
+          <div class="info">
+            <strong>📊 What you're seeing:</strong>
+            <br>• Bright areas = high frequency components
+            <br>• Dark areas = low frequency components  
+            <br>• Center = DC component (average brightness)
+            <br>• Edges = high frequency details
+            <br>• Image size: ${width} × ${height} pixels
+          </div>
+          <button onclick="window.close()" style="background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer;">
+            Close
+          </button>
+        </div>
+      </body>
+      </html>
+    `);
+    
+    fftWindow.document.close();
+    
+    // Wait for the window to load, then draw the FFT
+    fftWindow.addEventListener('load', () => {
+      const fftCanvas = fftWindow.document.getElementById('fftCanvas');
+      const fftCtx = fftCanvas.getContext('2d');
+      
+      // Create image data for FFT visualization
+      const fftImageData = fftCtx.createImageData(width, height);
+      
+      // Apply log scaling and shift zero frequency to center
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          // Shift coordinates to center zero frequency
+          const shiftedX = (x + width / 2) % width;
+          const shiftedY = (y + height / 2) % height;
+          const i = shiftedY * width + shiftedX;
+          const originalI = y * width + x;
+          
+          // Apply logarithmic scaling for better visualization
+          const logMag = Math.log(1 + magnitude[i] / maxMag);
+          const intensity = Math.floor(logMag * 255 / Math.log(2));
+          
+          fftImageData.data[originalI * 4] = intensity;     // R
+          fftImageData.data[originalI * 4 + 1] = intensity; // G
+          fftImageData.data[originalI * 4 + 2] = intensity; // B
+          fftImageData.data[originalI * 4 + 3] = 255;       // A
+        }
+      }
+      
+      fftCtx.putImageData(fftImageData, 0, 0);
+      
+      // Scale canvas for better visibility
+      fftCanvas.style.width = Math.min(600, width * 2) + 'px';
+      fftCanvas.style.height = Math.min(400, height * 2) + 'px';
+    });
   }
 
   // Utility function for debouncing
