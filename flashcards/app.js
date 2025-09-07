@@ -884,11 +884,26 @@ class PhotoEditor {
 
   fft1D(real, imag) {
     const N = real.length;
-    if (N <= 1) return { real, imag };
+    if (N <= 1) return { real: imag };
+    
+    // Ensure N is a power of 2 by padding with zeros if necessary
+    let paddedN = 1;
+    while (paddedN < N) paddedN *= 2;
+    
+    if (paddedN !== N) {
+      const paddedReal = new Float32Array(paddedN);
+      const paddedImag = new Float32Array(paddedN);
+      paddedReal.set(real);
+      paddedImag.set(imag);
+      real = paddedReal;
+      imag = paddedImag;
+    }
+    
+    const len = real.length;
     
     // Bit-reverse permutation
-    for (let i = 1, j = 0; i < N; i++) {
-      let bit = N >> 1;
+    for (let i = 1, j = 0; i < len; i++) {
+      let bit = len >> 1;
       for (; j & bit; bit >>= 1) {
         j ^= bit;
       }
@@ -901,37 +916,38 @@ class PhotoEditor {
     }
     
     // Cooley-Tukey FFT
-    for (let len = 2; len <= N; len <<= 1) {
-      const angle = -2 * Math.PI / len;
-      const wlen_real = Math.cos(angle);
-      const wlen_imag = Math.sin(angle);
+    for (let size = 2; size <= len; size *= 2) {
+      const halfSize = size / 2;
+      const angle = -2 * Math.PI / size;
       
-      for (let i = 0; i < N; i += len) {
-        let w_real = 1;
-        let w_imag = 0;
-        
-        for (let j = 0; j < len / 2; j++) {
-          const u_real = real[i + j];
-          const u_imag = imag[i + j];
-          const v_real = real[i + j + len / 2] * w_real - imag[i + j + len / 2] * w_imag;
-          const v_imag = real[i + j + len / 2] * w_imag + imag[i + j + len / 2] * w_real;
+      for (let i = 0; i < len; i += size) {
+        for (let j = 0; j < halfSize; j++) {
+          const k = i + j;
+          const l = k + halfSize;
           
-          real[i + j] = u_real + v_real;
-          imag[i + j] = u_imag + v_imag;
-          real[i + j + len / 2] = u_real - v_real;
-          imag[i + j + len / 2] = u_imag - v_imag;
+          const tReal = real[l] * Math.cos(angle * j) - imag[l] * Math.sin(angle * j);
+          const tImag = real[l] * Math.sin(angle * j) + imag[l] * Math.cos(angle * j);
           
-          const next_w_real = w_real * wlen_real - w_imag * wlen_imag;
-          w_imag = w_real * wlen_imag + w_imag * wlen_real;
-          w_real = next_w_real;
+          real[l] = real[k] - tReal;
+          imag[l] = imag[k] - tImag;
+          real[k] = real[k] + tReal;
+          imag[k] = imag[k] + tImag;
         }
       }
     }
     
-    return { real: new Float32Array(real), imag: new Float32Array(imag) };
+    return { 
+      real: N === len ? real : real.slice(0, N), 
+      imag: N === len ? imag : imag.slice(0, N) 
+    };
   }
 
   visualizeFFT(magnitude, width, height, maxMag) {
+    // Debug: Log some values to check if magnitude has reasonable data
+    console.log('FFT Debug - Max magnitude:', maxMag);
+    console.log('FFT Debug - First 10 magnitude values:', magnitude.slice(0, 10));
+    console.log('FFT Debug - Image dimensions:', width, 'x', height);
+    
     // Create a new window to display the FFT result
     const fftWindow = window.open('', '_blank', 'width=800,height=600');
     
@@ -959,6 +975,7 @@ class PhotoEditor {
             border: 2px solid #ddd;
             border-radius: 8px;
             margin: 10px;
+            image-rendering: pixelated;
           }
           .info {
             background: #e3f2fd;
@@ -967,19 +984,31 @@ class PhotoEditor {
             margin: 20px 0;
             text-align: left;
           }
+          .debug {
+            background: #fff3e0;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <h1>🔬 FFT Frequency Domain Analysis</h1>
           <canvas id="fftCanvas" width="${width}" height="${height}"></canvas>
+          <div class="debug">
+            Max magnitude: ${maxMag.toFixed(4)}<br>
+            Dimensions: ${width} × ${height}<br>
+            Total pixels: ${width * height}
+          </div>
           <div class="info">
             <strong>📊 What you're seeing:</strong>
             <br>• Bright areas = high frequency components
             <br>• Dark areas = low frequency components  
             <br>• Center = DC component (average brightness)
             <br>• Edges = high frequency details
-            <br>• Image size: ${width} × ${height} pixels
           </div>
           <button onclick="window.close()" style="background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer;">
             Close
@@ -999,18 +1028,29 @@ class PhotoEditor {
       // Create image data for FFT visualization
       const fftImageData = fftCtx.createImageData(width, height);
       
-      // Apply log scaling and shift zero frequency to center
+      // Find min and max for better scaling
+      let minMag = Infinity;
+      let maxMagActual = 0;
+      for (let i = 0; i < magnitude.length; i++) {
+        if (magnitude[i] < minMag) minMag = magnitude[i];
+        if (magnitude[i] > maxMagActual) maxMagActual = magnitude[i];
+      }
+      
+      console.log('Actual min/max magnitude:', minMag, maxMagActual);
+      
+      // Apply better scaling and shift zero frequency to center
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           // Shift coordinates to center zero frequency
-          const shiftedX = (x + width / 2) % width;
-          const shiftedY = (y + height / 2) % height;
+          const shiftedX = (x + Math.floor(width / 2)) % width;
+          const shiftedY = (y + Math.floor(height / 2)) % height;
           const i = shiftedY * width + shiftedX;
           const originalI = y * width + x;
           
-          // Apply logarithmic scaling for better visualization
-          const logMag = Math.log(1 + magnitude[i] / maxMag);
-          const intensity = Math.floor(logMag * 255 / Math.log(2));
+          // Normalize magnitude to 0-1 range, then apply log scaling
+          const normalizedMag = (magnitude[i] - minMag) / (maxMagActual - minMag);
+          const logMag = Math.log(1 + normalizedMag * 99) / Math.log(100); // log scale 0-1
+          const intensity = Math.floor(logMag * 255);
           
           fftImageData.data[originalI * 4] = intensity;     // R
           fftImageData.data[originalI * 4 + 1] = intensity; // G
