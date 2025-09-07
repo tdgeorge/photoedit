@@ -1028,29 +1028,43 @@ class PhotoEditor {
       // Create image data for FFT visualization
       const fftImageData = fftCtx.createImageData(width, height);
       
-      // Find min and max for better scaling
-      let minMag = Infinity;
-      let maxMagActual = 0;
+      // Find statistics for better normalization
+      let minMag = magnitude[0];
+      let maxMagActual = magnitude[0];
+      let sumMag = 0;
+      
       for (let i = 0; i < magnitude.length; i++) {
         if (magnitude[i] < minMag) minMag = magnitude[i];
         if (magnitude[i] > maxMagActual) maxMagActual = magnitude[i];
+        sumMag += magnitude[i];
       }
       
-      console.log('Actual min/max magnitude:', minMag, maxMagActual);
+      const avgMag = sumMag / magnitude.length;
+      console.log('FFT Stats - Min:', minMag, 'Max:', maxMagActual, 'Avg:', avgMag);
       
-      // Apply better scaling and shift zero frequency to center
+      // Apply logarithmic transformation and proper normalization
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-          // Shift coordinates to center zero frequency
+          // Shift coordinates to center zero frequency (DC component in center)
           const shiftedX = (x + Math.floor(width / 2)) % width;
           const shiftedY = (y + Math.floor(height / 2)) % height;
           const i = shiftedY * width + shiftedX;
           const originalI = y * width + x;
           
-          // Normalize magnitude to 0-1 range, then apply log scaling
-          const normalizedMag = (magnitude[i] - minMag) / (maxMagActual - minMag);
-          const logMag = Math.log(1 + normalizedMag * 99) / Math.log(100); // log scale 0-1
-          const intensity = Math.floor(logMag * 255);
+          // Get magnitude value
+          let magValue = magnitude[i];
+          
+          // Apply logarithmic scaling to compress the dynamic range
+          // Add 1 to avoid log(0), then normalize
+          const logMag = Math.log(1 + magValue);
+          const maxLogMag = Math.log(1 + maxMagActual);
+          const minLogMag = Math.log(1 + minMag);
+          
+          // Normalize to 0-1 range
+          const normalizedValue = (logMag - minLogMag) / (maxLogMag - minLogMag);
+          
+          // Clamp and convert to 0-255 range
+          const intensity = Math.floor(Math.max(0, Math.min(1, normalizedValue)) * 255);
           
           fftImageData.data[originalI * 4] = intensity;     // R
           fftImageData.data[originalI * 4 + 1] = intensity; // G
@@ -1085,6 +1099,12 @@ class PhotoEditor {
 document.addEventListener('DOMContentLoaded', () => {
   try {
     window.photoEditor = new PhotoEditor();
+    
+    // Update version for FFT normalization fix
+    const versionLabel = document.getElementById('version-label');
+    if (versionLabel) {
+      versionLabel.textContent = 'Photo Editor v1.1.2';
+    }
   } catch (error) {
     console.error('Failed to initialize Photo Editor:', error);
     
