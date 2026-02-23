@@ -3,10 +3,11 @@
  */
 
 export class AiComic {
-  constructor(bgCanvas, onStatus, onProgress) {
+  constructor(bgCanvas, onStatus, onProgress, onResult) {
     this.bgCanvas = bgCanvas;
     this.onStatus = onStatus;
     this.onProgress = onProgress || (() => {});
+    this.onResult = onResult || (() => {});
   }
 
   async applyAiComicEffect(apiKey) {
@@ -120,6 +121,9 @@ export class AiComic {
       };
       img.src = `data:image/png;base64,${b64}`;
     });
+
+    // Call onResult with the base64 data before drawing to bgCanvas
+    this.onResult(b64);
 
     // Step 7: Draw result back to bgCanvas at original resolution
     log(`Step 7: Drawing result onto bgCanvas at ${origW}x${origH}...`);
