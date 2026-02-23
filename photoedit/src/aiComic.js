@@ -83,7 +83,7 @@ export class AiComic {
     log(`Step 3: Building FormData (model=dall-e-2, size=${size}, image is RGBA square)`);
     this.onProgress('Step 3/7: Building API request...');
     const formData = new FormData();
-    formData.append('imagemodel', 'gpt-image-1.5');
+    formData.append('model', 'gpt-image-1.5');
     formData.append('image', blob, 'image.png');
     //formData.append('mask', maskBlob, 'mask.png');
     formData.append('prompt', prompt);
