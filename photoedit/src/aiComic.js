@@ -56,14 +56,15 @@ export class AiComic {
     });
     log(`Step 2 complete: blob size = ${(blob.size / 1024).toFixed(1)} KB`);
 
-    // Step 2b: Generate full-white mask (all pixels editable)
-    log('Step 2b: Generating full-white mask...');
+    // Step 2b: Generate fully-transparent mask (alpha=0 = all pixels editable by DALL-E 2)
+    log('Step 2b: Generating fully-transparent mask (alpha=0 = all pixels editable)...');
     this.onProgress('Step 2b/7: Generating mask...');
     const maskCanvas = document.createElement('canvas');
     maskCanvas.width = thumbW;
     maskCanvas.height = thumbH;
     const maskCtx = maskCanvas.getContext('2d');
-    // AFTER (correct — transparent alpha=0 = edit everything):
+    // Fully transparent mask = all pixels editable by DALL-E 2
+    // (alpha=0 means "edit this pixel", alpha=255 means "preserve this pixel")
     maskCtx.clearRect(0, 0, thumbW, thumbH);
     const maskBlob = await new Promise((resolve, reject) => {
       maskCanvas.toBlob(b => {
