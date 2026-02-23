@@ -36,8 +36,9 @@ export class AiComic {
     thumb.height = TARGET_SIZE;
     const thumbCtx = thumb.getContext('2d');
 
-    // Start with fully transparent background (required: RGBA PNG with alpha channel)
-    thumbCtx.clearRect(0, 0, TARGET_SIZE, TARGET_SIZE);
+    // Fill with opaque black background first so image pixels have alpha=255
+    thumbCtx.fillStyle = 'rgba(0, 0, 0, 255)';
+    thumbCtx.fillRect(0, 0, TARGET_SIZE, TARGET_SIZE);
 
     // Scale image to fit within 1024x1024, preserving aspect ratio (letterbox)
     const scale = Math.min(TARGET_SIZE / origW, TARGET_SIZE / origH);
@@ -45,6 +46,7 @@ export class AiComic {
     const drawH = Math.round(origH * scale);
     const drawX = Math.round((TARGET_SIZE - drawW) / 2);
     const drawY = Math.round((TARGET_SIZE - drawH) / 2);
+    thumbCtx.globalAlpha = 1.0;
     thumbCtx.drawImage(bgCanvas, drawX, drawY, drawW, drawH);
     log(`Step 1 complete: image drawn at (${drawX},${drawY}) size ${drawW}x${drawH} within 1024x1024 canvas`);
 
