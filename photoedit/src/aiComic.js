@@ -10,7 +10,7 @@ export class AiComic {
     this.onResult = onResult || (() => {});
   }
 
-  async applyAiComicEffect(apiKey) {
+  async applyAiComicEffect(apiKey, prompt) {
     const bgCanvas = this.bgCanvas;
     const log = (msg) => console.log('[AI Comic]', msg);
 
@@ -82,10 +82,7 @@ export class AiComic {
     formData.append('model', 'dall-e-2');
     formData.append('image', blob, 'image.png');
     formData.append('mask', maskBlob, 'mask.png');
-    formData.append(
-      'prompt',
-      'Transform this photo into a high-quality comic book illustration. Use bold black ink outlines, flat cel-shaded colors, halftone dot shading in shadow areas, and a classic American comic book art style. Preserve the composition and subjects of the original image.'
-    );
+    formData.append('prompt', prompt);
     formData.append('n', '1');
     formData.append('size', size);
     formData.append('response_format', 'b64_json');
