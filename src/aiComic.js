@@ -63,8 +63,8 @@ export class AiComic {
     maskCanvas.width = thumbW;
     maskCanvas.height = thumbH;
     const maskCtx = maskCanvas.getContext('2d');
-    maskCtx.fillStyle = 'rgba(255, 255, 255, 1)';
-    maskCtx.fillRect(0, 0, thumbW, thumbH);
+    // AFTER (correct — transparent alpha=0 = edit everything):
+    maskCtx.clearRect(0, 0, thumbW, thumbH);
     const maskBlob = await new Promise((resolve, reject) => {
       maskCanvas.toBlob(b => {
         if (b) resolve(b);
