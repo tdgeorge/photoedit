@@ -26,27 +26,30 @@ export class AiComic {
       log('Step 0: Could not sample original pixel: ' + e.message);
     }
 
-    // Step 1: Downscale
-    const MAX_W = 1920;
-    const MAX_H = 1080;
-    let thumbW = origW;
-    let thumbH = origH;
-    if (origW > MAX_W || origH > MAX_H) {
-      const scale = Math.min(MAX_W / origW, MAX_H / origH);
-      thumbW = Math.round(origW * scale);
-      thumbH = Math.round(origH * scale);
-    }
-    log(`Step 1: Downscaling from ${origW}x${origH} to ${thumbW}x${thumbH}`);
-    this.onProgress('Step 1/7: Downscaling image...');
+    // Step 1: Resize to required 1024x1024 square with RGBA (alpha channel required by DALL-E 2)
+    const TARGET_SIZE = 1024;
+    log(`Step 1: Resizing from ${origW}x${origH} to ${TARGET_SIZE}x${TARGET_SIZE} square (RGBA, letterboxed)`);
+    this.onProgress('Step 1/7: Resizing to 1024x1024 square...');
 
     const thumb = document.createElement('canvas');
-    thumb.width = thumbW;
-    thumb.height = thumbH;
+    thumb.width = TARGET_SIZE;
+    thumb.height = TARGET_SIZE;
     const thumbCtx = thumb.getContext('2d');
-    thumbCtx.drawImage(bgCanvas, 0, 0, thumbW, thumbH);
 
-    // Step 2: Export to PNG blob
-    log('Step 2: Exporting canvas to PNG blob...');
+    // Start with fully transparent background (required: RGBA PNG with alpha channel)
+    thumbCtx.clearRect(0, 0, TARGET_SIZE, TARGET_SIZE);
+
+    // Scale image to fit within 1024x1024, preserving aspect ratio (letterbox)
+    const scale = Math.min(TARGET_SIZE / origW, TARGET_SIZE / origH);
+    const drawW = Math.round(origW * scale);
+    const drawH = Math.round(origH * scale);
+    const drawX = Math.round((TARGET_SIZE - drawW) / 2);
+    const drawY = Math.round((TARGET_SIZE - drawH) / 2);
+    thumbCtx.drawImage(bgCanvas, drawX, drawY, drawW, drawH);
+    log(`Step 1 complete: image drawn at (${drawX},${drawY}) size ${drawW}x${drawH} within 1024x1024 canvas`);
+
+    // Step 2: Export to RGBA PNG blob (must preserve alpha channel)
+    log('Step 2: Exporting canvas to RGBA PNG blob...');
     this.onProgress('Step 2/7: Exporting to PNG...');
     const blob = await new Promise((resolve, reject) => {
       thumb.toBlob(b => {
@@ -54,18 +57,17 @@ export class AiComic {
         else reject(new Error('Failed to export canvas to PNG blob'));
       }, 'image/png');
     });
-    log(`Step 2 complete: blob size = ${(blob.size / 1024).toFixed(1)} KB`);
+    log(`Step 2 complete: blob size = ${(blob.size / 1024).toFixed(1)} KB (should be ~3000-5000 KB for RGBA 1024x1024)`);
 
-    // Step 2b: Generate fully-transparent mask (alpha=0 = all pixels editable by DALL-E 2)
-    log('Step 2b: Generating fully-transparent mask (alpha=0 = all pixels editable)...');
+    // Step 2b: Generate fully-transparent 1024x1024 mask
+    // DALL-E 2: transparent pixels (alpha=0) = edit here, opaque (alpha=255) = preserve
+    log('Step 2b: Generating 1024x1024 fully-transparent mask...');
     this.onProgress('Step 2b/7: Generating mask...');
     const maskCanvas = document.createElement('canvas');
-    maskCanvas.width = thumbW;
-    maskCanvas.height = thumbH;
+    maskCanvas.width = TARGET_SIZE;
+    maskCanvas.height = TARGET_SIZE;
     const maskCtx = maskCanvas.getContext('2d');
-    // Fully transparent mask = all pixels editable by DALL-E 2
-    // (alpha=0 means "edit this pixel", alpha=255 means "preserve this pixel")
-    maskCtx.clearRect(0, 0, thumbW, thumbH);
+    maskCtx.clearRect(0, 0, TARGET_SIZE, TARGET_SIZE);
     const maskBlob = await new Promise((resolve, reject) => {
       maskCanvas.toBlob(b => {
         if (b) resolve(b);
@@ -75,8 +77,8 @@ export class AiComic {
     log(`Step 2b complete: mask blob size = ${(maskBlob.size / 1024).toFixed(1)} KB`);
 
     // Step 3: Build request
-    const size = '1024x1024';
-    log(`Step 3: Building FormData (model=dall-e-2, size=${size})`);
+    const size = '1024x1024'; // Must match the input image dimensions
+    log(`Step 3: Building FormData (model=dall-e-2, size=${size}, image is RGBA square)`);
     this.onProgress('Step 3/7: Building API request...');
     const formData = new FormData();
     formData.append('model', 'dall-e-2');
