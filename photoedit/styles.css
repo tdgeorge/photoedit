@@ -494,3 +494,73 @@ input[type="color"] {
   cursor: pointer;
   padding: 0.125rem;
 }
+
+/* Debug Terminal */
+.debug-terminal {
+  background: #1a1a2e;
+  color: #e2e8f0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.8rem;
+  border-top: 3px solid #667eea;
+  margin-top: 1rem;
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 1rem;
+}
+
+.debug-terminal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #16213e;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #2d3561;
+}
+
+.debug-terminal__title {
+  font-weight: 700;
+  color: #a0aec0;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.debug-terminal__clear {
+  background: #2d3561;
+  color: #a0aec0;
+  border: 1px solid #3d4a7a;
+  border-radius: 6px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.debug-terminal__clear:hover {
+  background: #3d4a7a;
+  color: #e2e8f0;
+}
+
+.debug-terminal__output {
+  padding: 0.75rem 1rem;
+  min-height: 4rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.debug-line {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.debug-line--error {
+  color: #fc8181;
+}
+
+.debug-line--warn {
+  color: #f6e05e;
+}
