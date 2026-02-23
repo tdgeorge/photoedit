@@ -12,9 +12,16 @@ export class ComicTransform {
   }
 
   applyComicEffect() {
-    const CONTRAST_BOOST_FACTOR = 2.2;
-    const EDGE_THRESHOLD_RATIO = 0.15;
-    const DILATE_RADIUS = 2;
+    const EDGE_THRESHOLD_RATIO = 0.08;
+    const DILATE_RADIUS = 1;
+
+    function posterise(lum) {
+      if (lum > 220) return 255;
+      if (lum > 170) return 210;
+      if (lum > 110) return 155;
+      if (lum > 60)  return 90;
+      return 30;
+    }
 
     try {
       const ctx = this.bgCanvas.getContext('2d');
@@ -22,24 +29,14 @@ export class ComicTransform {
       const imageData = ctx.getImageData(0, 0, width, height);
       const data = imageData.data;
 
-      // Step 1: Convert to greyscale and apply high contrast
+      // Step 1: Convert to greyscale from original pixel data (no contrast yet)
       const grey = new Float32Array(width * height);
       for (let i = 0; i < data.length; i += 4) {
         const px = i / 4;
-        const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        // High contrast: push values toward black or white
-        const normalized = lum / 255 - 0.5;
-        const contrasted = normalized * CONTRAST_BOOST_FACTOR;
-        const v = Math.max(0, Math.min(255, contrasted * 255 + 127.5));
-        grey[px] = v;
-        data[i]     = v;
-        data[i + 1] = v;
-        data[i + 2] = v;
+        grey[px] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
       }
 
-      ctx.putImageData(imageData, 0, 0);
-
-      // Step 2: Sobel edge detection on the greyscale values
+      // Step 2: Sobel edge detection on the original greyscale
       const edges = new Float32Array(width * height);
       let maxEdge = 0;
       for (let y = 1; y < height - 1; y++) {
@@ -80,19 +77,26 @@ export class ComicTransform {
         }
       }
 
-      // Step 4: Composite — greyscale base with thick black ink edges on top
-      const out = ctx.getImageData(0, 0, width, height);
-      const outData = out.data;
+      // Step 4: Posterise greyscale into comic brightness zones
+      for (let i = 0; i < data.length; i += 4) {
+        const px = i / 4;
+        const v = posterise(grey[px]);
+        data[i]     = v;
+        data[i + 1] = v;
+        data[i + 2] = v;
+      }
+
+      // Step 5: Composite — posterised base with thick black ink edges on top
       for (let px = 0; px < width * height; px++) {
         if (dilated[px]) {
           const i = px * 4;
-          outData[i]     = 0;
-          outData[i + 1] = 0;
-          outData[i + 2] = 0;
+          data[i]     = 0;
+          data[i + 1] = 0;
+          data[i + 2] = 0;
         }
       }
 
-      ctx.putImageData(out, 0, 0);
+      ctx.putImageData(imageData, 0, 0);
 
       return true;
     } catch (err) {
