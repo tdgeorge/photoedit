@@ -145,8 +145,77 @@
     </footer>
   </main>
 
-  <script src="vendor/glfx.js"></script>
+  <section class="debug-terminal" aria-label="Debug terminal">
+    <div class="debug-terminal__header">
+      <span class="debug-terminal__title">Debug Console</span>
+      <button id="debug-terminal-clear" class="debug-terminal__clear" type="button">Clear</button>
+    </div>
+    <div id="debug-terminal-output" class="debug-terminal__output" role="log" aria-live="polite"></div>
+  </section>
+
   <script src="vendor/svg.min.js"></script>
+
+  <!-- Debug terminal: intercept errors before module scripts load -->
+  <script>
+    (function () {
+      var MAX_LINES = 100;
+
+      function pad(n) { return String(n).padStart(2, '0'); }
+
+      function timestamp() {
+        var d = new Date();
+        return '[' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + ']';
+      }
+
+      function addLine(level, msg) {
+        var el = document.getElementById('debug-terminal-output');
+        if (!el) return;
+        var line = document.createElement('div');
+        line.className = 'debug-line debug-line--' + level.toLowerCase();
+        line.textContent = timestamp() + ' [' + level + '] ' + msg;
+        el.appendChild(line);
+        // Keep last MAX_LINES entries
+        while (el.children.length > MAX_LINES) {
+          el.removeChild(el.firstChild);
+        }
+        el.scrollTop = el.scrollHeight;
+      }
+
+      // Intercept console.error
+      var _error = console.error.bind(console);
+      console.error = function () {
+        _error.apply(console, arguments);
+        addLine('ERROR', Array.prototype.join.call(arguments, ' '));
+      };
+
+      // Intercept console.warn
+      var _warn = console.warn.bind(console);
+      console.warn = function () {
+        _warn.apply(console, arguments);
+        addLine('WARN', Array.prototype.join.call(arguments, ' '));
+      };
+
+      window.addEventListener('error', function (e) {
+        addLine('ERROR', (e.message || String(e)) + (e.filename ? ' (' + e.filename + ':' + e.lineno + ')' : ''));
+      });
+
+      window.addEventListener('unhandledrejection', function (e) {
+        var reason = e.reason;
+        addLine('ERROR', 'Unhandled rejection: ' + (reason && reason.message ? reason.message : String(reason)));
+      });
+
+      document.addEventListener('DOMContentLoaded', function () {
+        var clearBtn = document.getElementById('debug-terminal-clear');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', function () {
+            var output = document.getElementById('debug-terminal-output');
+            if (output) output.innerHTML = '';
+          });
+        }
+      });
+    })();
+  </script>
+
   <script type="module" src="main.js"></script>
 </body>
 </html>
