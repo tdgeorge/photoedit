@@ -8,6 +8,8 @@ import { CropTool } from './src/cropTool.js';
 import { ColorAdjustments } from './src/colorAdjustments.js';
 import { ImageSaver } from './src/imageSaver.js';
 import { FFTAnalyzer } from './src/fftAnalyzer.js';
+import { ComicTransform } from './src/comicTransform.js';
+import { SpeechBubble } from './src/speechBubble.js';
 
 class PhotoEditor {
   constructor() {
@@ -29,6 +31,12 @@ class PhotoEditor {
       resetBtn: document.getElementById('resetBtn'),
       saveBtn: document.getElementById('saveBtn'),
       fftBtn: document.getElementById('fftBtn'),
+      comicBtn: document.getElementById('comicBtn'),
+      bubbleBtn: document.getElementById('bubbleBtn'),
+      clearBubblesBtn: document.getElementById('clearBubblesBtn'),
+      bubbleText: document.getElementById('bubbleText'),
+      bubbleFontSize: document.getElementById('bubbleFontSize'),
+      bubbleColor: document.getElementById('bubbleColor'),
       redSlider: document.getElementById('redSlider'),
       greenSlider: document.getElementById('greenSlider'),
       blueSlider: document.getElementById('blueSlider'),
@@ -38,7 +46,7 @@ class PhotoEditor {
       statusMessage: document.getElementById('status-message')
     };
 
-    const requiredElements = ['imageLoader', 'canvas', 'rotateBtn', 'cropBtn', 'saveBtn'];
+    const requiredElements = ['imageLoader', 'canvas', 'rotateBtn', 'cropBtn', 'saveBtn', 'comicBtn', 'bubbleBtn'];
     const missingElements = requiredElements.filter(id => !this.elements[id]);
     
     if (missingElements.length > 0) {
@@ -55,6 +63,15 @@ class PhotoEditor {
     this.cropTool = new CropTool(this.elements.canvas, this.bgCanvas);
     this.colorAdjustments = new ColorAdjustments();
     this.fftAnalyzer = new FFTAnalyzer(this.bgCanvas, (msg, type) => this.showStatusMessage(msg, type));
+    this.comicTransform = new ComicTransform(
+      this.elements.canvas,
+      this.bgCanvas,
+      (msg, type) => this.showStatusMessage(msg, type)
+    );
+    this.speechBubble = new SpeechBubble(
+      this.elements.canvas.parentElement,
+      (msg, type) => this.showStatusMessage(msg, type)
+    );
   }
 
   initializeState() {
@@ -76,6 +93,9 @@ class PhotoEditor {
     this.elements.resetBtn?.addEventListener('click', () => this.resetImage());
     this.elements.saveBtn.addEventListener('click', () => this.saveImage());
     this.elements.fftBtn?.addEventListener('click', () => this.computeFFT());
+    this.elements.comicBtn?.addEventListener('click', () => this.applyComicEffect());
+    this.elements.bubbleBtn?.addEventListener('click', () => this.addSpeechBubble());
+    this.elements.clearBubblesBtn?.addEventListener('click', () => this.clearBubbles());
     
     // Color sliders
     ['red', 'green', 'blue'].forEach(color => {
@@ -207,6 +227,43 @@ class PhotoEditor {
     this.fftAnalyzer.computeFFT();
   }
 
+  applyComicEffect() {
+    if (!this.state.isImageLoaded) {
+      this.showStatusMessage('Please load an image first.', 'warning');
+      return;
+    }
+
+    try {
+      const success = this.comicTransform.applyComicEffect();
+      if (success) {
+        const bgCtx = this.bgCanvas.getContext('2d');
+        const newImageData = bgCtx.getImageData(0, 0, this.bgCanvas.width, this.bgCanvas.height);
+        // Update originalImageData so colour sliders operate on the comic-effected image.
+        // The truly original image is still available via the Reset button (uses state.originalImage).
+        this.state.originalImageData = newImageData;
+        this.state.currentImageData = newImageData;
+        this.resetColorSliders();
+        this.imageProcessor.redrawCanvas();
+        this.showStatusMessage('Comic effect applied!', 'success');
+      }
+    } catch (error) {
+      console.error('Error applying comic effect:', error);
+      this.showStatusMessage('Failed to apply comic effect.', 'error');
+    }
+  }
+
+  addSpeechBubble() {
+    const text = this.elements.bubbleText?.value.trim() || 'Hello!';
+    const fontSize = this.elements.bubbleFontSize?.value || '18';
+    const color = this.elements.bubbleColor?.value || '#000000';
+    this.speechBubble.startAddingMode(text, fontSize, color);
+  }
+
+  clearBubbles() {
+    this.speechBubble.clearBubbles();
+    this.showStatusMessage('Speech bubbles cleared.', 'success');
+  }
+
   handleColorAdjustment(color, value) {
     this.colorAdjustments.setAdjustment(color, value);
     
@@ -257,7 +314,8 @@ class PhotoEditor {
   updateUI() {
     const hasImage = this.state.isImageLoaded;
     
-    [this.elements.rotateBtn, this.elements.cropBtn, this.elements.saveBtn, this.elements.fftBtn].forEach(btn => {
+    [this.elements.rotateBtn, this.elements.cropBtn, this.elements.saveBtn, this.elements.fftBtn,
+      this.elements.comicBtn, this.elements.bubbleBtn].forEach(btn => {
       if (btn) {
         btn.disabled = !hasImage;
         btn.style.opacity = hasImage ? '1' : '0.5';

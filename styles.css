@@ -433,3 +433,64 @@ canvas:hover {
     box-shadow: none;
   }
 }
+
+/* Bubble Controls */
+.bubble-controls h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.bubble-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bubble-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.bubble-field--row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bubble-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.bubble-input {
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #2d3748;
+  outline: none;
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+
+.bubble-input:focus {
+  border-color: #667eea;
+}
+
+.bubble-input--small {
+  width: 5rem;
+}
+
+input[type="color"] {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0.125rem;
+}
