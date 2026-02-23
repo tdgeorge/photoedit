@@ -564,3 +564,76 @@ input[type="color"] {
 .debug-line--warn {
   color: #f6e05e;
 }
+/* AI Comic Controls */
+.ai-controls h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.ai-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ai-key-note {
+  font-size: 0.75rem;
+  color: #718096;
+  line-height: 1.4;
+}
+
+.ai-comic-btn {
+  background: linear-gradient(135deg, #f6ad55, #ed8936);
+  color: #ffffff;
+  border-color: #ed8936;
+}
+
+.ai-comic-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ed8936, #dd6b20);
+  border-color: #dd6b20;
+}
+
+.ai-comic-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Progress Overlay */
+.ai-progress-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.ai-progress-box {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.ai-spinner {
+  width: 48px;
+  height: 48px;
+  border: 5px solid #e2e8f0;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.ai-progress-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+}
