@@ -46,7 +46,7 @@ class PhotoEditor {
       blueValue: document.getElementById('blueValue'),
       statusMessage: document.getElementById('status-message'),
       aiComicBtn: document.getElementById('aiComicBtn'),
-      openaiApiKey: document.getElementById('openaiApiKey'),
+      geminiApiKey: document.getElementById('geminiApiKey'),
       aiComicPrompt: document.getElementById('aiComicPrompt'),
       aiProgressOverlay: document.getElementById('ai-progress-overlay'),
       aiResultSection: document.getElementById('ai-result-section'),
@@ -284,9 +284,9 @@ class PhotoEditor {
   }
 
   async applyAiComicEffect() {
-    const apiKey = this.elements.openaiApiKey?.value?.trim();
+    const apiKey = this.elements.geminiApiKey?.value?.trim();
     if (!apiKey) {
-      this.showStatusMessage('Please enter your OpenAI API key.', 'warning');
+      this.showStatusMessage('Please enter your Gemini API key.', 'warning');
       return;
     }
     if (!this.state.isImageLoaded) {
