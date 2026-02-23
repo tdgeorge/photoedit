@@ -47,6 +47,7 @@ class PhotoEditor {
       statusMessage: document.getElementById('status-message'),
       aiComicBtn: document.getElementById('aiComicBtn'),
       openaiApiKey: document.getElementById('openaiApiKey'),
+      aiComicPrompt: document.getElementById('aiComicPrompt'),
       aiProgressOverlay: document.getElementById('ai-progress-overlay'),
       aiResultSection: document.getElementById('ai-result-section'),
       aiResultImg: document.getElementById('ai-result-img'),
@@ -293,6 +294,12 @@ class PhotoEditor {
       return;
     }
 
+    const prompt = this.elements.aiComicPrompt?.value?.trim();
+    if (!prompt) {
+      this.showStatusMessage('Please enter a prompt for the AI Comic effect.', 'warning');
+      return;
+    }
+
     // Show spinner
     if (this.elements.aiProgressOverlay) {
       this.elements.aiProgressOverlay.style.display = 'flex';
@@ -302,7 +309,7 @@ class PhotoEditor {
 
     try {
       this.showStatusMessage('Sending to OpenAI...', 'info');
-      await this.aiComic.applyAiComicEffect(apiKey);
+      await this.aiComic.applyAiComicEffect(apiKey, prompt);
 
       console.log('[AI Comic] API call complete. Updating state from bgCanvas...');
       // Draw directly to the visible canvas as a guaranteed fallback
