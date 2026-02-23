@@ -12,7 +12,10 @@ export class ComicTransform {
   }
 
   applyComicEffect() {
-    const EDGE_THRESHOLD_RATIO = 0.12;
+    const BILATERAL_RADIUS = 6;
+    const SIGMA_SPACE = 10;
+    const SIGMA_COLOR = 25;
+    const EDGE_THRESHOLD_RATIO = 0.15;
     const DILATE_RADIUS = 1;
 
     function posterise(lum) {
@@ -30,44 +33,65 @@ export class ComicTransform {
       const imageData = ctx.getImageData(0, 0, width, height);
       const data = imageData.data;
 
-      // Step 1: Convert to greyscale from original pixel data (no contrast yet)
+      // Step 1: Convert to greyscale from original pixel data
       const grey = new Float32Array(width * height);
       for (let i = 0; i < data.length; i += 4) {
-        const px = i / 4;
-        grey[px] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        grey[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
       }
 
-      // Step 2: 3x3 box blur for denoising before edge detection
-      const blurred = new Float32Array(width * height);
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          let sum = 0, count = 0;
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              const ny = y + dy, nx = x + dx;
-              if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
-                sum += grey[ny * width + nx];
-                count++;
-              }
-            }
-          }
-          blurred[y * width + x] = sum / count;
+      // Step 2: Full 2D bilateral filter on greyscale
+      // Pre-compute spatial Gaussian weights to avoid exp() inside the inner loop
+      const r = BILATERAL_RADIUS;
+      const diam = 2 * r + 1;
+      const spatialWeights = new Float32Array(diam * diam);
+      const twoSigmaSpaceSq = 2 * SIGMA_SPACE * SIGMA_SPACE;
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          spatialWeights[(dy + r) * diam + (dx + r)] =
+            Math.exp(-(dx * dx + dy * dy) / twoSigmaSpaceSq);
         }
       }
 
-      // Step 3: Sobel edge detection on the blurred greyscale
+      const twoSigmaColorSq = 2 * SIGMA_COLOR * SIGMA_COLOR;
+      const bilat = new Float32Array(width * height);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const centerVal = grey[y * width + x];
+          let weightSum = 0;
+          let valueSum = 0;
+          for (let dy = -r; dy <= r; dy++) {
+            const ny = y + dy;
+            if (ny < 0 || ny >= height) continue;
+            for (let dx = -r; dx <= r; dx++) {
+              const nx = x + dx;
+              if (nx < 0 || nx >= width) continue;
+              const neighborVal = grey[ny * width + nx];
+              const intensityDiff = neighborVal - centerVal;
+              const intensityWeight = Math.exp(
+                -(intensityDiff * intensityDiff) / twoSigmaColorSq
+              );
+              const w = spatialWeights[(dy + r) * diam + (dx + r)] * intensityWeight;
+              weightSum += w;
+              valueSum += w * neighborVal;
+            }
+          }
+          bilat[y * width + x] = valueSum / weightSum;
+        }
+      }
+
+      // Step 3: Sobel edge detection on the bilaterally-filtered greyscale
       const edges = new Float32Array(width * height);
       let maxEdge = 0;
       for (let y = 1; y < height - 1; y++) {
         for (let x = 1; x < width - 1; x++) {
-          const tl = blurred[(y - 1) * width + (x - 1)];
-          const tm = blurred[(y - 1) * width + x];
-          const tr = blurred[(y - 1) * width + (x + 1)];
-          const ml = blurred[y * width + (x - 1)];
-          const mr = blurred[y * width + (x + 1)];
-          const bl = blurred[(y + 1) * width + (x - 1)];
-          const bm = blurred[(y + 1) * width + x];
-          const br = blurred[(y + 1) * width + (x + 1)];
+          const tl = bilat[(y - 1) * width + (x - 1)];
+          const tm = bilat[(y - 1) * width + x];
+          const tr = bilat[(y - 1) * width + (x + 1)];
+          const ml = bilat[y * width + (x - 1)];
+          const mr = bilat[y * width + (x + 1)];
+          const bl = bilat[(y + 1) * width + (x - 1)];
+          const bm = bilat[(y + 1) * width + x];
+          const br = bilat[(y + 1) * width + (x + 1)];
 
           const gx = -tl - 2 * ml - bl + tr + 2 * mr + br;
           const gy = -tl - 2 * tm - tr + bl + 2 * bm + br;
@@ -96,10 +120,10 @@ export class ComicTransform {
         }
       }
 
-      // Step 5: Posterise greyscale into comic brightness zones
+      // Step 5: Posterise using bilateral-smoothed luma for clean flat zones
       for (let i = 0; i < data.length; i += 4) {
         const px = i / 4;
-        const v = posterise(grey[px]);
+        const v = posterise(bilat[px]);
         data[i]     = v;
         data[i + 1] = v;
         data[i + 2] = v;
