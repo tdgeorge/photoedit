@@ -78,7 +78,11 @@ class PhotoEditor {
     );
     this.aiComic = new AiComic(
       this.bgCanvas,
-      (msg, type) => this.showStatusMessage(msg, type)
+      (msg, type) => this.showStatusMessage(msg, type),
+      (label) => {
+        const el = document.querySelector('.ai-progress-label');
+        if (el) el.textContent = label;
+      }
     );
   }
 
@@ -295,13 +299,17 @@ class PhotoEditor {
       this.showStatusMessage('Sending to OpenAI...', 'info');
       await this.aiComic.applyAiComicEffect(apiKey);
 
-      // Update state from bgCanvas
+      console.log('[AI Comic] API call complete. Updating state from bgCanvas...');
       const bgCtx = this.bgCanvas.getContext('2d');
+      console.log('[AI Comic] bgCanvas dimensions:', this.bgCanvas.width, 'x', this.bgCanvas.height);
       const newImageData = bgCtx.getImageData(0, 0, this.bgCanvas.width, this.bgCanvas.height);
+      console.log('[AI Comic] ImageData captured, length:', newImageData.data.length);
       this.state.originalImageData = newImageData;
       this.state.currentImageData = newImageData;
       this.resetColorSliders();
+      console.log('[AI Comic] Calling imageProcessor.redrawCanvas()...');
       this.imageProcessor.redrawCanvas();
+      console.log('[AI Comic] redrawCanvas() complete. Image viewer should now show result.');
       this.showStatusMessage('AI Comic Book effect applied!', 'success');
     } catch (err) {
       console.error('AI Comic Book failed:', err.message || err);
