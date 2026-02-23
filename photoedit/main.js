@@ -10,6 +10,7 @@ import { ImageSaver } from './src/imageSaver.js';
 import { FFTAnalyzer } from './src/fftAnalyzer.js';
 import { ComicTransform } from './src/comicTransform.js';
 import { SpeechBubble } from './src/speechBubble.js';
+import { AiComic } from './src/aiComic.js';
 
 class PhotoEditor {
   constructor() {
@@ -43,7 +44,10 @@ class PhotoEditor {
       redValue: document.getElementById('redValue'),
       greenValue: document.getElementById('greenValue'),
       blueValue: document.getElementById('blueValue'),
-      statusMessage: document.getElementById('status-message')
+      statusMessage: document.getElementById('status-message'),
+      aiComicBtn: document.getElementById('aiComicBtn'),
+      openaiApiKey: document.getElementById('openaiApiKey'),
+      aiProgressOverlay: document.getElementById('ai-progress-overlay')
     };
 
     const requiredElements = ['imageLoader', 'canvas', 'rotateBtn', 'cropBtn', 'saveBtn', 'comicBtn', 'bubbleBtn'];
@@ -72,6 +76,10 @@ class PhotoEditor {
       this.elements.canvas.parentElement,
       (msg, type) => this.showStatusMessage(msg, type)
     );
+    this.aiComic = new AiComic(
+      this.bgCanvas,
+      (msg, type) => this.showStatusMessage(msg, type)
+    );
   }
 
   initializeState() {
@@ -96,6 +104,7 @@ class PhotoEditor {
     this.elements.comicBtn?.addEventListener('click', () => this.applyComicEffect());
     this.elements.bubbleBtn?.addEventListener('click', () => this.addSpeechBubble());
     this.elements.clearBubblesBtn?.addEventListener('click', () => this.clearBubbles());
+    this.elements.aiComicBtn?.addEventListener('click', () => this.applyAiComicEffect());
     
     // Color sliders
     ['red', 'green', 'blue'].forEach(color => {
@@ -264,6 +273,49 @@ class PhotoEditor {
     this.showStatusMessage('Speech bubbles cleared.', 'success');
   }
 
+  async applyAiComicEffect() {
+    const apiKey = this.elements.openaiApiKey?.value?.trim();
+    if (!apiKey) {
+      this.showStatusMessage('Please enter your OpenAI API key.', 'warning');
+      return;
+    }
+    if (!this.state.isImageLoaded) {
+      this.showStatusMessage('Please load an image first.', 'warning');
+      return;
+    }
+
+    // Show spinner
+    if (this.elements.aiProgressOverlay) {
+      this.elements.aiProgressOverlay.style.display = 'flex';
+      this.elements.aiProgressOverlay.removeAttribute('aria-hidden');
+    }
+    if (this.elements.aiComicBtn) this.elements.aiComicBtn.disabled = true;
+
+    try {
+      this.showStatusMessage('Sending to OpenAI...', 'info');
+      await this.aiComic.applyAiComicEffect(apiKey);
+
+      // Update state from bgCanvas
+      const bgCtx = this.bgCanvas.getContext('2d');
+      const newImageData = bgCtx.getImageData(0, 0, this.bgCanvas.width, this.bgCanvas.height);
+      this.state.originalImageData = newImageData;
+      this.state.currentImageData = newImageData;
+      this.resetColorSliders();
+      this.imageProcessor.redrawCanvas();
+      this.showStatusMessage('AI Comic Book effect applied!', 'success');
+    } catch (err) {
+      console.error('AI Comic Book failed:', err.message || err);
+      this.showStatusMessage('AI Comic Book failed. Check the debug console.', 'error');
+    } finally {
+      // Hide spinner
+      if (this.elements.aiProgressOverlay) {
+        this.elements.aiProgressOverlay.style.display = 'none';
+        this.elements.aiProgressOverlay.setAttribute('aria-hidden', 'true');
+      }
+      if (this.elements.aiComicBtn) this.elements.aiComicBtn.disabled = false;
+    }
+  }
+
   handleColorAdjustment(color, value) {
     this.colorAdjustments.setAdjustment(color, value);
     
@@ -315,7 +367,7 @@ class PhotoEditor {
     const hasImage = this.state.isImageLoaded;
     
     [this.elements.rotateBtn, this.elements.cropBtn, this.elements.saveBtn, this.elements.fftBtn,
-      this.elements.comicBtn, this.elements.bubbleBtn].forEach(btn => {
+      this.elements.comicBtn, this.elements.bubbleBtn, this.elements.aiComicBtn].forEach(btn => {
       if (btn) {
         btn.disabled = !hasImage;
         btn.style.opacity = hasImage ? '1' : '0.5';

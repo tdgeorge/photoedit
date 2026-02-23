@@ -136,6 +136,23 @@
             </div>
           </div>
         </div>
+
+        <div class="ai-controls">
+          <h3>AI Comic Book</h3>
+          <div class="ai-settings">
+            <div class="bubble-field">
+              <label for="openaiApiKey" class="bubble-label">OpenAI API Key</label>
+              <input type="password" id="openaiApiKey" class="bubble-input" placeholder="sk-..." aria-label="OpenAI API Key" autocomplete="off">
+            </div>
+            <p class="ai-key-note">Your key is used directly in your browser and never stored or sent to any server other than OpenAI.</p>
+            <button id="aiComicBtn" class="tool-btn ai-comic-btn" type="button" disabled aria-label="Apply AI comic book effect">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"></polygon>
+              </svg>
+              AI Comic Book
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -143,6 +160,13 @@
       <div id="version-label" class="version-label">Photo Editor v2.0.0</div>
       <div id="status-message" class="status-message" aria-live="polite"></div>
     </footer>
+
+    <div id="ai-progress-overlay" class="ai-progress-overlay" aria-hidden="true" style="display:none">
+      <div class="ai-progress-box">
+        <div class="ai-spinner"></div>
+        <p class="ai-progress-label">Generating AI comic...</p>
+      </div>
+    </div>
   </main>
 
   <section class="debug-terminal" aria-label="Debug terminal">
