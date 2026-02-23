@@ -12,9 +12,9 @@ export class ComicTransform {
   }
 
   applyComicEffect() {
-    const SATURATION_BOOST_FACTOR = 1.8;
-    const CONTRAST_BOOST_FACTOR = 1.4;
-    const EDGE_THRESHOLD_RATIO = 0.2; // pixels above this fraction of max edge magnitude are drawn as ink
+    const CONTRAST_BOOST_FACTOR = 2.2;
+    const EDGE_THRESHOLD_RATIO = 0.15;
+    const DILATE_RADIUS = 2;
 
     try {
       const ctx = this.bgCanvas.getContext('2d');
@@ -22,52 +22,24 @@ export class ComicTransform {
       const imageData = ctx.getImageData(0, 0, width, height);
       const data = imageData.data;
 
-      // Step 1: Boost saturation and contrast in-place
+      // Step 1: Convert to greyscale and apply high contrast
+      const grey = new Float32Array(width * height);
       for (let i = 0; i < data.length; i += 4) {
-        let r = data[i] / 255;
-        let g = data[i + 1] / 255;
-        let b = data[i + 2] / 255;
-
-        // Saturation boost via HSL conversion
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        const l = (max + min) / 2;
-        const delta = max - min;
-
-        if (delta > 0) {
-          const s = delta / (1 - Math.abs(2 * l - 1));
-          const sBoosted = Math.min(s * SATURATION_BOOST_FACTOR, 1);
-          const scale = sBoosted / s;
-
-          r = l + (r - l) * scale;
-          g = l + (g - l) * scale;
-          b = l + (b - l) * scale;
-
-          r = Math.max(0, Math.min(1, r));
-          g = Math.max(0, Math.min(1, g));
-          b = Math.max(0, Math.min(1, b));
-        }
-
-        // Contrast boost (centered on 0.5)
-        r = Math.max(0, Math.min(1, (r - 0.5) * CONTRAST_BOOST_FACTOR + 0.5));
-        g = Math.max(0, Math.min(1, (g - 0.5) * CONTRAST_BOOST_FACTOR + 0.5));
-        b = Math.max(0, Math.min(1, (b - 0.5) * CONTRAST_BOOST_FACTOR + 0.5));
-
-        data[i]     = r * 255;
-        data[i + 1] = g * 255;
-        data[i + 2] = b * 255;
+        const px = i / 4;
+        const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        // High contrast: push values toward black or white
+        const normalized = lum / 255 - 0.5;
+        const contrasted = normalized * CONTRAST_BOOST_FACTOR;
+        const v = Math.max(0, Math.min(255, contrasted * 255 + 127.5));
+        grey[px] = v;
+        data[i]     = v;
+        data[i + 1] = v;
+        data[i + 2] = v;
       }
 
       ctx.putImageData(imageData, 0, 0);
 
-      // Step 2: Build grayscale copy for Sobel edge detection
-      const grey = new Float32Array(width * height);
-      for (let i = 0; i < data.length; i += 4) {
-        const px = i / 4;
-        grey[px] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-      }
-
-      // Sobel convolution — produces edge magnitude per pixel
+      // Step 2: Sobel edge detection on the greyscale values
       const edges = new Float32Array(width * height);
       let maxEdge = 0;
       for (let y = 1; y < height - 1; y++) {
@@ -89,23 +61,34 @@ export class ComicTransform {
         }
       }
 
-      // Step 3: Overlay ink edges onto the colour image
-      const out = ctx.getImageData(0, 0, width, height);
-      const outData = out.data;
+      // Step 3: Dilate edges by DILATE_RADIUS pixels (morphological dilation)
       const threshold = maxEdge * EDGE_THRESHOLD_RATIO;
-
+      const dilated = new Uint8Array(width * height);
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-          const px = y * width + x;
-          const mag = edges[px];
-          if (mag > threshold) {
-            // Blend towards dark ink proportionally to edge strength
-            const t = Math.min((mag - threshold) / (maxEdge - threshold), 1);
-            const i = px * 4;
-            outData[i]     = Math.round(outData[i]     * (1 - t));
-            outData[i + 1] = Math.round(outData[i + 1] * (1 - t));
-            outData[i + 2] = Math.round(outData[i + 2] * (1 - t));
+          if (edges[y * width + x] > threshold) {
+            for (let dy = -DILATE_RADIUS; dy <= DILATE_RADIUS; dy++) {
+              for (let dx = -DILATE_RADIUS; dx <= DILATE_RADIUS; dx++) {
+                const ny = y + dy;
+                const nx = x + dx;
+                if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+                  dilated[ny * width + nx] = 1;
+                }
+              }
+            }
           }
+        }
+      }
+
+      // Step 4: Composite — greyscale base with thick black ink edges on top
+      const out = ctx.getImageData(0, 0, width, height);
+      const outData = out.data;
+      for (let px = 0; px < width * height; px++) {
+        if (dilated[px]) {
+          const i = px * 4;
+          outData[i]     = 0;
+          outData[i + 1] = 0;
+          outData[i + 2] = 0;
         }
       }
 

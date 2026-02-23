@@ -1,143 +1,196 @@
 /**
  * Speech Bubble Module
- * Overlays draggable, editable SVG speech bubbles on the canvas using SVG.js
+ * Overlays draggable speech bubbles on the canvas using a plain overlay canvas.
  */
+
+const CHAR_WIDTH_RATIO = 0.65;
+const VERTICAL_SPACE_MULTIPLIER = 2.4;
 
 export class SpeechBubble {
   constructor(canvasWrapper, onStatus) {
     this.wrapper = canvasWrapper;
     this.onStatus = onStatus;
-    this.svgInstance = null;
     this.bubbles = [];
     this._pendingClickHandler = null;
+    this._overlayCanvas = null;
+    this._dragging = null;
+    this._dragOffsetX = 0;
+    this._dragOffsetY = 0;
+    this._docListenersAttached = false;
+
+    this._ensureOverlay();
   }
 
-  _ensureSVG() {
-    if (this.svgInstance) return true;
+  _ensureOverlay() {
+    if (this._overlayCanvas) return;
 
-    if (typeof window.SVG === 'undefined') {
-      this.onStatus('SVG.js is not available.', 'error');
-      return false;
+    this.wrapper.style.position = 'relative';
+
+    const oc = document.createElement('canvas');
+    oc.id = 'bubble-overlay-canvas';
+    oc.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;';
+    this.wrapper.appendChild(oc);
+    this._overlayCanvas = oc;
+
+    // Size the overlay to match the image canvas
+    const imgCanvas = this.wrapper.querySelector('canvas:not(#bubble-overlay-canvas)');
+    if (imgCanvas) {
+      oc.width  = imgCanvas.width;
+      oc.height = imgCanvas.height;
+      oc.style.width  = imgCanvas.style.width  || imgCanvas.width  + 'px';
+      oc.style.height = imgCanvas.style.height || imgCanvas.height + 'px';
     }
 
-    const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svgEl.id = 'speech-bubble-svg';
-    svgEl.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    svgEl.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;';
-    this.wrapper.appendChild(svgEl);
-    this.svgInstance = window.SVG(svgEl);
-    return true;
+    oc.addEventListener('mousedown', (e) => this._onMouseDown(e));
+
+    if (!this._docListenersAttached) {
+      document.addEventListener('mousemove', (e) => this._onMouseMove(e));
+      document.addEventListener('mouseup',   ()  => this._onMouseUp());
+      this._docListenersAttached = true;
+    }
   }
 
   startAddingMode(text, fontSize, color) {
-    if (!this._ensureSVG()) return;
+    this._ensureOverlay();
+    const oc = this._overlayCanvas;
+    oc.style.pointerEvents = 'all';
+    oc.style.cursor = 'crosshair';
 
-    const svgEl = document.getElementById('speech-bubble-svg');
-    svgEl.style.pointerEvents = 'all';
-    svgEl.style.cursor = 'crosshair';
-
-    // Remove any previous pending handler
     if (this._pendingClickHandler) {
-      svgEl.removeEventListener('click', this._pendingClickHandler);
+      oc.removeEventListener('click', this._pendingClickHandler);
     }
 
     this._pendingClickHandler = (e) => {
-      // Ignore clicks on existing bubble groups
-      if (e.target !== svgEl && e.target.closest('g')) return;
-
-      const rect = svgEl.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const rect = oc.getBoundingClientRect();
+      const scaleX = oc.width  / rect.width;
+      const scaleY = oc.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top)  * scaleY;
       this._createBubble(x, y, text, parseInt(fontSize, 10) || 18, color);
       this.stopAddingMode();
     };
 
-    svgEl.addEventListener('click', this._pendingClickHandler);
+    oc.addEventListener('click', this._pendingClickHandler);
     this.onStatus('Click on the image to place the speech bubble.', 'info');
   }
 
   stopAddingMode() {
-    const svgEl = document.getElementById('speech-bubble-svg');
-    if (svgEl) {
-      svgEl.style.pointerEvents = 'none';
-      svgEl.style.cursor = '';
-      if (this._pendingClickHandler) {
-        svgEl.removeEventListener('click', this._pendingClickHandler);
-        this._pendingClickHandler = null;
-      }
+    const oc = this._overlayCanvas;
+    if (!oc) return;
+    oc.style.pointerEvents = 'none';
+    oc.style.cursor = '';
+    if (this._pendingClickHandler) {
+      oc.removeEventListener('click', this._pendingClickHandler);
+      this._pendingClickHandler = null;
     }
   }
 
   _createBubble(cx, cy, text, fontSize, color) {
-    const group = this.svgInstance.group();
-    // Minimum width 120px; 0.65 is an approximate character-width-to-font-size ratio;
-    // 2.4 gives enough vertical space for comfortable single-line text.
-    const rw = Math.max(120, text.length * fontSize * 0.65);
-    const rh = fontSize * 2.4;
-    const tailH = 22;
-
-    // Draw tail first so ellipse covers its base
-    const tailLeft = cx - 10;
-    const tailRight = cx + 10;
-    const tailBase = cy + rh / 2;
-    group.polygon(`${tailLeft},${tailBase} ${tailRight},${tailBase} ${cx - 14},${tailBase + tailH}`)
-      .fill('white')
-      .stroke({ color: '#333333', width: 2 });
-
-    // Ellipse (drawn on top of tail base)
-    group.ellipse(rw, rh)
-      .center(cx, cy)
-      .fill('white')
-      .stroke({ color: '#333333', width: 2 });
-
-    // Text centered in ellipse
-    group.text(text)
-      .center(cx, cy)
-      .font({ size: fontSize, family: 'Arial, sans-serif', anchor: 'middle', leading: '1.3em' })
-      .fill(color);
-
-    // Allow pointer events on the bubble and enable drag
-    group.node.style.pointerEvents = 'all';
-    group.node.style.cursor = 'move';
-    this._makeDraggable(group);
-
-    this.bubbles.push(group);
+    const rw = Math.max(120, text.length * fontSize * CHAR_WIDTH_RATIO);
+    const rh = fontSize * VERTICAL_SPACE_MULTIPLIER;
+    this.bubbles.push({ cx, cy, text, fontSize, color, rw, rh });
+    this._redrawBubbles();
   }
 
-  _makeDraggable(group) {
-    let active = false;
-    let originX = 0;
-    let originY = 0;
-    let translateX = 0;
-    let translateY = 0;
+  _redrawBubbles() {
+    const oc = this._overlayCanvas;
+    if (!oc) return;
+    const ctx = oc.getContext('2d');
+    ctx.clearRect(0, 0, oc.width, oc.height);
 
-    const onMouseDown = (e) => {
-      active = true;
-      originX = e.clientX - translateX;
-      originY = e.clientY - translateY;
-      e.stopPropagation();
-      e.preventDefault();
-    };
+    for (const b of this.bubbles) {
+      const { cx, cy, text, fontSize, color, rw, rh } = b;
+      const tailH = 22;
+      const tailBase = cy + rh / 2;
 
-    const onMouseMove = (e) => {
-      if (!active) return;
-      translateX = e.clientX - originX;
-      translateY = e.clientY - originY;
-      group.node.setAttribute('transform', `translate(${translateX},${translateY})`);
-    };
+      ctx.save();
 
-    const onMouseUp = () => {
-      active = false;
-    };
+      // Tail (triangular, pointing downward-left)
+      ctx.beginPath();
+      ctx.moveTo(cx - 10, tailBase);
+      ctx.lineTo(cx + 10, tailBase);
+      ctx.lineTo(cx - 14, tailBase + tailH);
+      ctx.closePath();
+      ctx.fillStyle = 'white';
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
-    group.node.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+      // Ellipse body
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rw / 2, rh / 2, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'white';
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Text
+      ctx.fillStyle = color;
+      ctx.font = `${fontSize}px Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, cx, cy);
+
+      ctx.restore();
+    }
+  }
+
+  _hitTest(b, x, y) {
+    const dx = (x - b.cx) / (b.rw / 2);
+    const dy = (y - b.cy) / (b.rh / 2);
+    return dx * dx + dy * dy <= 1;
+  }
+
+  _onMouseDown(e) {
+    const oc = this._overlayCanvas;
+    const rect = oc.getBoundingClientRect();
+    const scaleX = oc.width  / rect.width;
+    const scaleY = oc.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top)  * scaleY;
+
+    for (let i = this.bubbles.length - 1; i >= 0; i--) {
+      if (this._hitTest(this.bubbles[i], x, y)) {
+        this._dragging = i;
+        this._dragOffsetX = x - this.bubbles[i].cx;
+        this._dragOffsetY = y - this.bubbles[i].cy;
+        oc.style.cursor = 'move';
+        e.preventDefault();
+        return;
+      }
+    }
+  }
+
+  _onMouseMove(e) {
+    if (this._dragging === null) return;
+    const oc = this._overlayCanvas;
+    const rect = oc.getBoundingClientRect();
+    const scaleX = oc.width  / rect.width;
+    const scaleY = oc.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top)  * scaleY;
+
+    const b = this.bubbles[this._dragging];
+    b.cx = x - this._dragOffsetX;
+    b.cy = y - this._dragOffsetY;
+    this._redrawBubbles();
+  }
+
+  _onMouseUp() {
+    if (this._dragging !== null) {
+      this._overlayCanvas.style.cursor = '';
+      this._dragging = null;
+    }
   }
 
   clearBubbles() {
-    this.stopAddingMode();
-    this.bubbles.forEach(b => b.remove());
     this.bubbles = [];
+    if (this._overlayCanvas) {
+      const ctx = this._overlayCanvas.getContext('2d');
+      ctx.clearRect(0, 0, this._overlayCanvas.width, this._overlayCanvas.height);
+    }
+    this.stopAddingMode();
   }
 }
