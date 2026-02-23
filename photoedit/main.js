@@ -47,7 +47,10 @@ class PhotoEditor {
       statusMessage: document.getElementById('status-message'),
       aiComicBtn: document.getElementById('aiComicBtn'),
       openaiApiKey: document.getElementById('openaiApiKey'),
-      aiProgressOverlay: document.getElementById('ai-progress-overlay')
+      aiProgressOverlay: document.getElementById('ai-progress-overlay'),
+      aiResultSection: document.getElementById('ai-result-section'),
+      aiResultImg: document.getElementById('ai-result-img'),
+      aiResultSaveBtn: document.getElementById('ai-result-save-btn')
     };
 
     const requiredElements = ['imageLoader', 'canvas', 'rotateBtn', 'cropBtn', 'saveBtn', 'comicBtn', 'bubbleBtn'];
@@ -82,7 +85,8 @@ class PhotoEditor {
       (label) => {
         const el = document.querySelector('.ai-progress-label');
         if (el) el.textContent = label;
-      }
+      },
+      (b64) => this._showAiResult(b64)
     );
   }
 
@@ -109,6 +113,7 @@ class PhotoEditor {
     this.elements.bubbleBtn?.addEventListener('click', () => this.addSpeechBubble());
     this.elements.clearBubblesBtn?.addEventListener('click', () => this.clearBubbles());
     this.elements.aiComicBtn?.addEventListener('click', () => this.applyAiComicEffect());
+    this.elements.aiResultSaveBtn?.addEventListener('click', () => this._saveAiResult());
     
     // Color sliders
     ['red', 'green', 'blue'].forEach(color => {
@@ -300,6 +305,12 @@ class PhotoEditor {
       await this.aiComic.applyAiComicEffect(apiKey);
 
       console.log('[AI Comic] API call complete. Updating state from bgCanvas...');
+      // Draw directly to the visible canvas as a guaranteed fallback
+      const visCtx = this.elements.canvas.getContext('2d');
+      this.elements.canvas.width = this.bgCanvas.width;
+      this.elements.canvas.height = this.bgCanvas.height;
+      visCtx.drawImage(this.bgCanvas, 0, 0);
+      console.log('[AI Comic] Direct draw to visible canvas complete.');
       const bgCtx = this.bgCanvas.getContext('2d');
       console.log('[AI Comic] bgCanvas dimensions:', this.bgCanvas.width, 'x', this.bgCanvas.height);
       const newImageData = bgCtx.getImageData(0, 0, this.bgCanvas.width, this.bgCanvas.height);
@@ -400,6 +411,30 @@ class PhotoEditor {
         this.elements.statusMessage.className = 'status-message';
       }
     }, 3000);
+  }
+
+  _showAiResult(b64) {
+    const src = `data:image/png;base64,${b64}`;
+    if (this.elements.aiResultImg) {
+      this.elements.aiResultImg.src = src;
+    }
+    if (this.elements.aiResultSection) {
+      this.elements.aiResultSection.style.display = 'block';
+    }
+    console.log('[AI Comic] AI result viewer updated with new image.');
+    this._lastAiResultB64 = b64;
+  }
+
+  _saveAiResult() {
+    if (!this._lastAiResultB64) {
+      console.log('[AI Comic] No AI result available to save.');
+      return;
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const a = document.createElement('a');
+    a.href = `data:image/png;base64,${this._lastAiResultB64}`;
+    a.download = `ai-comic-result-${timestamp}.png`;
+    a.click();
   }
 
   debounce(func, wait) {

@@ -169,6 +169,16 @@
     </div>
   </main>
 
+  <section id="ai-result-section" class="ai-result-section" style="display:none" aria-label="AI Comic Book Result">
+    <div class="ai-result-header">
+      <h2 class="ai-result-title">🎨 AI Comic Book Result</h2>
+      <button id="ai-result-save-btn" class="tool-btn primary" type="button">Save AI Result</button>
+    </div>
+    <div class="ai-result-viewer">
+      <img id="ai-result-img" class="ai-result-img" src="" alt="AI Comic Book Result">
+    </div>
+  </section>
+
   <section class="debug-terminal" aria-label="Debug terminal">
     <div class="debug-terminal__header">
       <span class="debug-terminal__title">Debug Console</span>
@@ -215,6 +225,13 @@
       console.warn = function () {
         _warn.apply(console, arguments);
         addLine('WARN', Array.prototype.join.call(arguments, ' '));
+      };
+
+      // Intercept console.log
+      var _log = console.log.bind(console);
+      console.log = function () {
+        _log.apply(console, arguments);
+        addLine('LOG', Array.prototype.join.call(arguments, ' '));
       };
 
       window.addEventListener('error', function (e) {
