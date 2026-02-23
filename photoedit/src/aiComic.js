@@ -40,21 +40,13 @@ export class AiComic {
       }, 'image/png');
     });
 
-    // 3. Determine size parameter based on aspect ratio
-    let size;
-    const ratio = thumbW / thumbH;
-    if (ratio > 1.05) {
-      size = '1536x1024';
-    } else if (ratio < 0.95) {
-      size = '1024x1536';
-    } else {
-      size = '1024x1024';
-    }
+    // 3. Size parameter — dall-e-2 only supports 256x256, 512x512, 1024x1024
+    const size = '1024x1024';
 
     // 4. Build multipart request
     const formData = new FormData();
-    formData.append('model', 'gpt-image-1');
-    formData.append('image[]', blob, 'image.png');
+    formData.append('model', 'dall-e-2');
+    formData.append('image', blob, 'image.png');
     formData.append(
       'prompt',
       'Transform this photo into a high-quality comic book illustration. Use bold black ink outlines, flat cel-shaded colors, halftone dot shading in shadow areas, and a classic American comic book art style. Preserve the composition and subjects of the original image.'
