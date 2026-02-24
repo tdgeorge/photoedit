@@ -26,9 +26,9 @@ export class AiComic {
       log('Step 0: Could not sample original pixel: ' + e.message);
     }
 
-    // Step 1: Resize to 1024x1024 square (letterboxed)
+    // Step 1: Resize to 1024x1024 square (stretched to fill)
     const TARGET_SIZE = 1024;
-    log(`Step 1: Resizing from ${origW}x${origH} to ${TARGET_SIZE}x${TARGET_SIZE} square (letterboxed)`);
+    log(`Step 1: Resizing from ${origW}x${origH} to ${TARGET_SIZE}x${TARGET_SIZE} square (stretched)`);
     this.onProgress('Step 1/5: Resizing to 1024x1024 square...');
 
     const thumb = document.createElement('canvas');
@@ -36,19 +36,9 @@ export class AiComic {
     thumb.height = TARGET_SIZE;
     const thumbCtx = thumb.getContext('2d');
 
-    // Fill with opaque black background
-    thumbCtx.fillStyle = 'rgba(0, 0, 0, 255)';
-    thumbCtx.fillRect(0, 0, TARGET_SIZE, TARGET_SIZE);
-
-    // Scale image to fit within 1024x1024, preserving aspect ratio (letterbox)
-    const scale = Math.min(TARGET_SIZE / origW, TARGET_SIZE / origH);
-    const drawW = Math.round(origW * scale);
-    const drawH = Math.round(origH * scale);
-    const drawX = Math.round((TARGET_SIZE - drawW) / 2);
-    const drawY = Math.round((TARGET_SIZE - drawH) / 2);
-    thumbCtx.globalAlpha = 1.0;
-    thumbCtx.drawImage(bgCanvas, drawX, drawY, drawW, drawH);
-    log(`Step 1 complete: image drawn at (${drawX},${drawY}) size ${drawW}x${drawH} within 1024x1024 canvas`);
+    // Stretch image to fill exactly 1024x1024
+    thumbCtx.drawImage(bgCanvas, 0, 0, TARGET_SIZE, TARGET_SIZE);
+    log(`Step 1 complete: image stretched to fill ${TARGET_SIZE}x${TARGET_SIZE} canvas`);
 
     // Step 2: Export canvas to base64 PNG string
     log('Step 2: Exporting canvas to base64 PNG string...');

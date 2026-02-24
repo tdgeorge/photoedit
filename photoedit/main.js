@@ -4,12 +4,6 @@
  */
 
 import { ImageProcessor } from './src/imageProcessor.js';
-import { CropTool } from './src/cropTool.js';
-import { ColorAdjustments } from './src/colorAdjustments.js';
-import { ImageSaver } from './src/imageSaver.js';
-import { FFTAnalyzer } from './src/fftAnalyzer.js';
-import { ComicTransform } from './src/comicTransform.js';
-import { SpeechBubble } from './src/speechBubble.js';
 import { AiComic } from './src/aiComic.js';
 
 class PhotoEditor {
@@ -27,34 +21,18 @@ class PhotoEditor {
     this.elements = {
       imageLoader: document.getElementById('imageLoader'),
       canvas: document.getElementById('imageCanvas'),
-      rotateBtn: document.getElementById('rotateBtn'),
-      cropBtn: document.getElementById('cropBtn'),
-      resetBtn: document.getElementById('resetBtn'),
-      saveBtn: document.getElementById('saveBtn'),
-      fftBtn: document.getElementById('fftBtn'),
-      comicBtn: document.getElementById('comicBtn'),
-      bubbleBtn: document.getElementById('bubbleBtn'),
-      clearBubblesBtn: document.getElementById('clearBubblesBtn'),
-      bubbleText: document.getElementById('bubbleText'),
-      bubbleFontSize: document.getElementById('bubbleFontSize'),
-      bubbleColor: document.getElementById('bubbleColor'),
-      redSlider: document.getElementById('redSlider'),
-      greenSlider: document.getElementById('greenSlider'),
-      blueSlider: document.getElementById('blueSlider'),
-      redValue: document.getElementById('redValue'),
-      greenValue: document.getElementById('greenValue'),
-      blueValue: document.getElementById('blueValue'),
       statusMessage: document.getElementById('status-message'),
       aiComicBtn: document.getElementById('aiComicBtn'),
       geminiApiKey: document.getElementById('geminiApiKey'),
       aiComicPrompt: document.getElementById('aiComicPrompt'),
       aiProgressOverlay: document.getElementById('ai-progress-overlay'),
+      aiResultDetails: document.getElementById('ai-result-details'),
       aiResultSection: document.getElementById('ai-result-section'),
       aiResultImg: document.getElementById('ai-result-img'),
       aiResultSaveBtn: document.getElementById('ai-result-save-btn')
     };
 
-    const requiredElements = ['imageLoader', 'canvas', 'rotateBtn', 'cropBtn', 'saveBtn', 'comicBtn', 'bubbleBtn'];
+    const requiredElements = ['imageLoader', 'canvas', 'aiComicBtn'];
     const missingElements = requiredElements.filter(id => !this.elements[id]);
     
     if (missingElements.length > 0) {
@@ -68,18 +46,6 @@ class PhotoEditor {
     
     // Initialize modules
     this.imageProcessor = new ImageProcessor(this.elements.canvas, this.bgCanvas);
-    this.cropTool = new CropTool(this.elements.canvas, this.bgCanvas);
-    this.colorAdjustments = new ColorAdjustments();
-    this.fftAnalyzer = new FFTAnalyzer(this.bgCanvas, (msg, type) => this.showStatusMessage(msg, type));
-    this.comicTransform = new ComicTransform(
-      this.elements.canvas,
-      this.bgCanvas,
-      (msg, type) => this.showStatusMessage(msg, type)
-    );
-    this.speechBubble = new SpeechBubble(
-      this.elements.canvas.parentElement,
-      (msg, type) => this.showStatusMessage(msg, type)
-    );
     this.aiComic = new AiComic(
       this.bgCanvas,
       (msg, type) => this.showStatusMessage(msg, type),
@@ -104,25 +70,9 @@ class PhotoEditor {
     // File upload
     this.elements.imageLoader.addEventListener('change', (e) => this.handleFileUpload(e));
     
-    // Tool buttons
-    this.elements.rotateBtn.addEventListener('click', () => this.rotateImage());
-    this.elements.cropBtn.addEventListener('click', () => this.applyCrop());
-    this.elements.resetBtn?.addEventListener('click', () => this.resetImage());
-    this.elements.saveBtn.addEventListener('click', () => this.saveImage());
-    this.elements.fftBtn?.addEventListener('click', () => this.computeFFT());
-    this.elements.comicBtn?.addEventListener('click', () => this.applyComicEffect());
-    this.elements.bubbleBtn?.addEventListener('click', () => this.addSpeechBubble());
-    this.elements.clearBubblesBtn?.addEventListener('click', () => this.clearBubbles());
+    // AI buttons
     this.elements.aiComicBtn?.addEventListener('click', () => this.applyAiComicEffect());
     this.elements.aiResultSaveBtn?.addEventListener('click', () => this._saveAiResult());
-    
-    // Color sliders
-    ['red', 'green', 'blue'].forEach(color => {
-      const slider = this.elements[`${color}Slider`];
-      if (slider) {
-        slider.addEventListener('input', () => this.handleColorAdjustment(color, slider.value));
-      }
-    });
     
     // Window resize
     window.addEventListener('resize', this.debounce(() => {
@@ -149,7 +99,6 @@ class PhotoEditor {
       
       this.imageProcessor.redrawCanvas();
       this.imageProcessor.scaleCanvasView();
-      this.resetColorSliders();
       this.updateUI();
       
       this.showStatusMessage('Image loaded successfully!', 'success');
@@ -157,130 +106,6 @@ class PhotoEditor {
       console.error('Error loading image:', error);
       this.showStatusMessage(error.message || 'Failed to load image. Please try again.', 'error');
     }
-  }
-
-  rotateImage() {
-    if (!this.state.isImageLoaded) {
-      this.showStatusMessage('Please load an image first.', 'warning');
-      return;
-    }
-
-    try {
-      const newImageData = this.imageProcessor.rotateImage();
-      this.state.originalImageData = newImageData;
-      this.state.currentImageData = newImageData;
-      
-      this.applyColorAdjustments();
-      this.imageProcessor.scaleCanvasView();
-      
-      this.showStatusMessage('Image rotated successfully!', 'success');
-    } catch (error) {
-      console.error('Error rotating image:', error);
-      this.showStatusMessage('Failed to rotate image.', 'error');
-    }
-  }
-
-  applyCrop() {
-    if (!this.state.isImageLoaded) {
-      this.showStatusMessage('Please load an image first.', 'warning');
-      return;
-    }
-
-    try {
-      const newImageData = this.cropTool.applyCrop();
-      this.state.originalImageData = newImageData;
-      this.state.currentImageData = newImageData;
-      
-      this.applyColorAdjustments();
-      this.imageProcessor.scaleCanvasView();
-      this.cropTool.clearCropOverlay();
-      
-      // Reset crop button style
-      this.elements.cropBtn.style.background = '';
-      this.elements.cropBtn.style.borderColor = '';
-      
-      this.showStatusMessage('Image cropped successfully!', 'success');
-    } catch (error) {
-      console.error('Error cropping image:', error);
-      this.showStatusMessage(error.message || 'Failed to crop image.', 'error');
-    }
-  }
-
-  resetImage() {
-    if (!this.state.originalImage) {
-      this.showStatusMessage('No image to reset.', 'warning');
-      return;
-    }
-
-    try {
-      const imageData = this.imageProcessor.processLoadedImage(this.state.originalImage);
-      this.state.originalImageData = imageData.originalImageData;
-      this.state.currentImageData = imageData.currentImageData;
-      
-      this.resetColorSliders();
-      this.imageProcessor.redrawCanvas();
-      this.imageProcessor.scaleCanvasView();
-      
-      this.showStatusMessage('Image reset to original.', 'success');
-    } catch (error) {
-      console.error('Error resetting image:', error);
-      this.showStatusMessage('Failed to reset image.', 'error');
-    }
-  }
-
-  saveImage() {
-    if (!this.state.isImageLoaded) {
-      this.showStatusMessage('No image to save.', 'warning');
-      return;
-    }
-
-    ImageSaver.saveImage(this.bgCanvas, (msg, type) => this.showStatusMessage(msg, type));
-  }
-
-  computeFFT() {
-    if (!this.state.isImageLoaded) {
-      this.showStatusMessage('Please load an image first.', 'warning');
-      return;
-    }
-
-    this.fftAnalyzer.computeFFT();
-  }
-
-  applyComicEffect() {
-    if (!this.state.isImageLoaded) {
-      this.showStatusMessage('Please load an image first.', 'warning');
-      return;
-    }
-
-    try {
-      const success = this.comicTransform.applyComicEffect();
-      if (success) {
-        const bgCtx = this.bgCanvas.getContext('2d');
-        const newImageData = bgCtx.getImageData(0, 0, this.bgCanvas.width, this.bgCanvas.height);
-        // Update originalImageData so colour sliders operate on the comic-effected image.
-        // The truly original image is still available via the Reset button (uses state.originalImage).
-        this.state.originalImageData = newImageData;
-        this.state.currentImageData = newImageData;
-        this.resetColorSliders();
-        this.imageProcessor.redrawCanvas();
-        this.showStatusMessage('Comic effect applied!', 'success');
-      }
-    } catch (error) {
-      console.error('Error applying comic effect:', error);
-      this.showStatusMessage('Failed to apply comic effect.', 'error');
-    }
-  }
-
-  addSpeechBubble() {
-    const text = this.elements.bubbleText?.value.trim() || 'Hello!';
-    const fontSize = this.elements.bubbleFontSize?.value || '18';
-    const color = this.elements.bubbleColor?.value || '#000000';
-    this.speechBubble.startAddingMode(text, fontSize, color);
-  }
-
-  clearBubbles() {
-    this.speechBubble.clearBubbles();
-    this.showStatusMessage('Speech bubbles cleared.', 'success');
   }
 
   async applyAiComicEffect() {
@@ -324,7 +149,6 @@ class PhotoEditor {
       console.log('[AI Comic] ImageData captured, length:', newImageData.data.length);
       this.state.originalImageData = newImageData;
       this.state.currentImageData = newImageData;
-      this.resetColorSliders();
       console.log('[AI Comic] Calling imageProcessor.redrawCanvas()...');
       this.imageProcessor.redrawCanvas();
       console.log('[AI Comic] redrawCanvas() complete. Image viewer should now show result.');
@@ -342,67 +166,13 @@ class PhotoEditor {
     }
   }
 
-  handleColorAdjustment(color, value) {
-    this.colorAdjustments.setAdjustment(color, value);
-    
-    // Update display value
-    const valueElement = this.elements[`${color}Value`];
-    if (valueElement) {
-      valueElement.textContent = value;
-    }
-    
-    // Update slider accessibility
-    const slider = this.elements[`${color}Slider`];
-    if (slider) {
-      slider.setAttribute('aria-valuenow', value);
-    }
-    
-    this.applyColorAdjustments();
-  }
-
-  applyColorAdjustments() {
-    if (!this.state.originalImageData) return;
-    
-    this.state.currentImageData = this.colorAdjustments.applyToImageData(
-      this.state.originalImageData, 
-      this.bgCanvas.getContext('2d')
-    );
-    
-    this.imageProcessor.redrawCanvas();
-  }
-
-  resetColorSliders() {
-    this.colorAdjustments.resetAdjustments();
-    
-    ['red', 'green', 'blue'].forEach(color => {
-      const slider = this.elements[`${color}Slider`];
-      const valueElement = this.elements[`${color}Value`];
-      
-      if (slider) {
-        slider.value = 100;
-        slider.setAttribute('aria-valuenow', '100');
-      }
-      
-      if (valueElement) {
-        valueElement.textContent = '100';
-      }
-    });
-  }
-
   updateUI() {
     const hasImage = this.state.isImageLoaded;
     
-    [this.elements.rotateBtn, this.elements.cropBtn, this.elements.saveBtn, this.elements.fftBtn,
-      this.elements.comicBtn, this.elements.bubbleBtn, this.elements.aiComicBtn].forEach(btn => {
-      if (btn) {
-        btn.disabled = !hasImage;
-        btn.style.opacity = hasImage ? '1' : '0.5';
-        btn.style.cursor = hasImage ? 'pointer' : 'not-allowed';
-      }
-    });
-
-    if (this.elements.resetBtn) {
-      this.elements.resetBtn.disabled = !hasImage;
+    if (this.elements.aiComicBtn) {
+      this.elements.aiComicBtn.disabled = !hasImage;
+      this.elements.aiComicBtn.style.opacity = hasImage ? '1' : '0.5';
+      this.elements.aiComicBtn.style.cursor = hasImage ? 'pointer' : 'not-allowed';
     }
   }
 
@@ -425,8 +195,8 @@ class PhotoEditor {
     if (this.elements.aiResultImg) {
       this.elements.aiResultImg.src = src;
     }
-    if (this.elements.aiResultSection) {
-      this.elements.aiResultSection.style.display = 'block';
+    if (this.elements.aiResultDetails) {
+      this.elements.aiResultDetails.open = true;
     }
     console.log('[AI Comic] AI result viewer updated with new image.');
     this._lastAiResultB64 = b64;
