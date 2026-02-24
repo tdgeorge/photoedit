@@ -137,12 +137,6 @@ class PhotoEditor {
       await this.aiComic.applyAiComicEffect(apiKey, prompt);
 
       console.log('[AI Comic] API call complete. Updating state from bgCanvas...');
-      // Draw directly to the visible canvas as a guaranteed fallback
-      const visCtx = this.elements.canvas.getContext('2d');
-      this.elements.canvas.width = this.bgCanvas.width;
-      this.elements.canvas.height = this.bgCanvas.height;
-      visCtx.drawImage(this.bgCanvas, 0, 0);
-      console.log('[AI Comic] Direct draw to visible canvas complete.');
       const bgCtx = this.bgCanvas.getContext('2d');
       console.log('[AI Comic] bgCanvas dimensions:', this.bgCanvas.width, 'x', this.bgCanvas.height);
       const newImageData = bgCtx.getImageData(0, 0, this.bgCanvas.width, this.bgCanvas.height);
