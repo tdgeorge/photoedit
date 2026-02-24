@@ -6,13 +6,10 @@
 export class ImageProcessor {
   constructor(canvas, bgCanvas) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
     this.bgCanvas = bgCanvas;
     this.bgCtx = bgCanvas.getContext('2d');
     
     // Enable image smoothing for better quality
-    this.ctx.imageSmoothingEnabled = true;
-    this.ctx.imageSmoothingQuality = 'high';
     this.bgCtx.imageSmoothingEnabled = true;
     this.bgCtx.imageSmoothingQuality = 'high';
   }
@@ -60,11 +57,9 @@ export class ImageProcessor {
   }
 
   processLoadedImage(img) {
-    // Set canvas dimensions
+    // Set background canvas dimensions
     this.bgCanvas.width = img.width;
     this.bgCanvas.height = img.height;
-    this.canvas.width = img.width;
-    this.canvas.height = img.height;
     
     // Draw image to background canvas
     this.bgCtx.drawImage(img, 0, 0);
@@ -97,16 +92,11 @@ export class ImageProcessor {
     this.bgCtx.clearRect(0, 0, this.bgCanvas.width, this.bgCanvas.height);
     this.bgCtx.drawImage(tempCanvas, 0, 0);
     
-    // Update display canvas
-    this.canvas.width = this.bgCanvas.width;
-    this.canvas.height = this.bgCanvas.height;
-    
     return this.bgCtx.getImageData(0, 0, this.bgCanvas.width, this.bgCanvas.height);
   }
 
   redrawCanvas() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.drawImage(this.bgCanvas, 0, 0, this.canvas.width, this.canvas.height);
+    this.canvas.src = this.bgCanvas.toDataURL();
   }
 
   scaleCanvasView() {

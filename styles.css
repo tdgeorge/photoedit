@@ -128,18 +128,17 @@ body {
   min-height: 400px;
 }
 
-canvas {
+#imageCanvas {
   display: block;
   border-radius: 12px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  touch-action: none;
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   transition: transform 0.2s ease;
 }
 
-canvas:hover {
+#imageCanvas:hover {
   transform: scale(1.02);
 }
 
