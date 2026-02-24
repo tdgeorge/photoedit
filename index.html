@@ -35,108 +35,6 @@
       </div>
       
       <div class="controls-panel">
-        <div class="toolbar">
-          <button id="rotateBtn" class="tool-btn" type="button" aria-label="Rotate image 90 degrees">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M1 4v6h6"></path>
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-            </svg>
-            Rotate 90°
-          </button>
-          <button id="cropBtn" class="tool-btn" type="button" aria-label="Crop image">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"></path>
-              <path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"></path>
-            </svg>
-            Crop
-          </button>
-          <button id="resetBtn" class="tool-btn secondary" type="button" aria-label="Reset all changes">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-              <path d="M3 3v5h5"></path>
-            </svg>
-            Reset
-          </button>
-          <button id="saveBtn" class="tool-btn primary" type="button" aria-label="Save edited image">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-              <polyline points="17,21 17,13 7,13 7,21"></polyline>
-              <polyline points="7,3 7,8 15,8"></polyline>
-            </svg>
-            Save
-          </button>
-          <button id="fftBtn" disabled>🔬 FFT Analysis</button>
-          <button id="comicBtn" class="tool-btn" type="button" disabled aria-label="Apply comic-style effect to image">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-              <line x1="9" y1="9" x2="9.01" y2="9"></line>
-              <line x1="15" y1="9" x2="15.01" y2="9"></line>
-            </svg>
-            Apply Comic Effect
-          </button>
-          <button id="bubbleBtn" class="tool-btn" type="button" disabled aria-label="Add speech bubble to image">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-            Add Speech Bubble
-          </button>
-          <button id="clearBubblesBtn" class="tool-btn" type="button" aria-label="Clear all speech bubbles">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3,6 5,6 21,6"></polyline>
-              <path d="M19 6l-1 14H6L5 6"></path>
-              <path d="M10 11v6"></path>
-              <path d="M14 11v6"></path>
-            </svg>
-            Clear Bubbles
-          </button>
-        </div>
-
-        <div class="color-controls">
-          <h3>Color Adjustments</h3>
-          <div class="slider-group">
-            <label for="redSlider" class="slider-label">
-              <span class="color-name">Red</span>
-              <span id="redValue" class="slider-value">100</span>
-            </label>
-            <input type="range" id="redSlider" class="color-slider red" min="0" max="200" value="100" aria-valuemin="0" aria-valuemax="200" aria-valuenow="100">
-          </div>
-          
-          <div class="slider-group">
-            <label for="greenSlider" class="slider-label">
-              <span class="color-name">Green</span>
-              <span id="greenValue" class="slider-value">100</span>
-            </label>
-            <input type="range" id="greenSlider" class="color-slider green" min="0" max="200" value="100" aria-valuemin="0" aria-valuemax="200" aria-valuenow="100">
-          </div>
-          
-          <div class="slider-group">
-            <label for="blueSlider" class="slider-label">
-              <span class="color-name">Blue</span>
-              <span id="blueValue" class="slider-value">100</span>
-            </label>
-            <input type="range" id="blueSlider" class="color-slider blue" min="0" max="200" value="100" aria-valuemin="0" aria-valuemax="200" aria-valuenow="100">
-          </div>
-        </div>
-
-        <div class="bubble-controls">
-          <h3>Speech Bubble</h3>
-          <div class="bubble-settings">
-            <div class="bubble-field">
-              <label for="bubbleText" class="bubble-label">Text</label>
-              <input type="text" id="bubbleText" class="bubble-input" value="Hello!" maxlength="60" aria-label="Speech bubble text">
-            </div>
-            <div class="bubble-field bubble-field--row">
-              <label for="bubbleFontSize" class="bubble-label">Font size</label>
-              <input type="number" id="bubbleFontSize" class="bubble-input bubble-input--small" value="18" min="8" max="72" aria-label="Speech bubble font size">
-            </div>
-            <div class="bubble-field bubble-field--row">
-              <label for="bubbleColor" class="bubble-label">Text color</label>
-              <input type="color" id="bubbleColor" value="#000000" aria-label="Speech bubble text color">
-            </div>
-          </div>
-        </div>
-
         <div class="ai-controls">
           <h3>AI Comic Book</h3>
           <div class="ai-settings">
@@ -173,23 +71,28 @@
     </div>
   </main>
 
-  <section id="ai-result-section" class="ai-result-section" style="display:none" aria-label="AI Comic Book Result">
-    <div class="ai-result-header">
-      <h2 class="ai-result-title">🎨 AI Comic Book Result</h2>
-      <button id="ai-result-save-btn" class="tool-btn primary" type="button">Save AI Result</button>
-    </div>
-    <div class="ai-result-viewer">
-      <img id="ai-result-img" class="ai-result-img" src="" alt="AI Comic Book Result">
-    </div>
-  </section>
+  <details id="ai-result-details" class="collapsible-section">
+    <summary class="collapsible-summary">🎨 AI Comic Book Result</summary>
+    <section id="ai-result-section" class="ai-result-section" aria-label="AI Comic Book Result">
+      <div class="ai-result-header">
+        <button id="ai-result-save-btn" class="tool-btn primary" type="button">Save AI Result</button>
+      </div>
+      <div class="ai-result-viewer">
+        <img id="ai-result-img" class="ai-result-img" src="" alt="AI Comic Book Result">
+      </div>
+    </section>
+  </details>
 
-  <section class="debug-terminal" aria-label="Debug terminal">
-    <div class="debug-terminal__header">
-      <span class="debug-terminal__title">Debug Console</span>
-      <button id="debug-terminal-clear" class="debug-terminal__clear" type="button">Clear</button>
-    </div>
-    <div id="debug-terminal-output" class="debug-terminal__output" role="log" aria-live="polite"></div>
-  </section>
+  <details class="collapsible-section">
+    <summary class="collapsible-summary">🐛 Debug Console</summary>
+    <section class="debug-terminal" aria-label="Debug terminal">
+      <div class="debug-terminal__header">
+        <span class="debug-terminal__title">Debug Console</span>
+        <button id="debug-terminal-clear" class="debug-terminal__clear" type="button">Clear</button>
+      </div>
+      <div id="debug-terminal-output" class="debug-terminal__output" role="log" aria-live="polite"></div>
+    </section>
+  </details>
 
   <!-- Debug terminal: intercept errors before module scripts load -->
   <script>
